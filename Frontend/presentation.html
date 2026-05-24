@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MedEcos — Unified Medical Ecosystem</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --teal:#009688;--teal-dark:#00695C;--teal-light:#E0F2F1;--teal-mid:#4DB6AC;
+  --white:#fff;--off-white:#F8FDFC;--gray:#546E7A;--dark:#1A2F35;
+  --accent:#00BCD4;--warn:#FFA726;--red:#EF5350;--green:#66BB6A;
+}
+body{font-family:'Inter',sans-serif;background:#000;color:var(--dark);overflow:hidden;width:100vw;height:100vh;}
+
+/* Slides */
+#deck{width:100%;height:100%;position:relative;}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  opacity:0;transform:translateX(60px);transition:opacity .5s ease,transform .5s ease;pointer-events:none;padding:60px;}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:all;}
+.slide.exit{opacity:0;transform:translateX(-60px);}
+
+/* Nav */
+#nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;z-index:100;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(10px);border-radius:40px;padding:10px 20px;}
+#nav button{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 10px;border-radius:20px;transition:.2s;}
+#nav button:hover{background:var(--teal);}
+#counter{color:#ccc;font-size:13px;min-width:60px;text-align:center;}
+#dots{display:flex;gap:6px;}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:.2s;}
+.dot.on{background:var(--teal);transform:scale(1.3);}
+
+/* ── SLIDE 1: TITLE ── */
+.s-title{background:linear-gradient(135deg,var(--dark) 0%,#0D3D35 50%,#006B5E 100%);}
+.s-title .hero{text-align:center;}
+.logo-ring{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--accent));
+  display:flex;align-items:center;justify-content:center;margin:0 auto 28px;box-shadow:0 0 60px rgba(0,150,136,.6);
+  font-size:44px;}
+.s-title h1{font-size:72px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1;}
+.s-title h1 span{color:var(--teal-mid);}
+.s-title .tagline{font-size:22px;color:rgba(255,255,255,.7);margin-top:16px;font-weight:300;}
+.badge-row{display:flex;gap:12px;margin-top:32px;justify-content:center;flex-wrap:wrap;}
+.badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:8px 18px;color:#fff;font-size:13px;font-weight:500;}
+
+/* ── SLIDE 2: PROBLEM ── */
+.s-problem{background:var(--off-white);}
+.slide-header{text-align:center;margin-bottom:40px;}
+.slide-header .eyebrow{font-size:13px;font-weight:700;color:var(--teal);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+.slide-header h2{font-size:44px;font-weight:800;color:var(--dark);letter-spacing:-1px;}
+.problem-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:860px;width:100%;}
+.prob-card{background:#fff;border-radius:16px;padding:28px;border-left:4px solid var(--red);
+  box-shadow:0 4px 20px rgba(0,0,0,.07);}
+.prob-card .icon{font-size:32px;margin-bottom:12px;}
+.prob-card h3{font-size:17px;font-weight:700;color:var(--dark);margin-bottom:8px;}
+.prob-card p{font-size:14px;color:var(--gray);line-height:1.6;}
+.stat-bar{margin-top:32px;background:#fff;border-radius:14px;padding:20px 32px;
+  display:flex;gap:48px;box-shadow:0 4px 20px rgba(0,0,0,.07);max-width:860px;width:100%;}
+.stat{text-align:center;}
+.stat .num{font-size:36px;font-weight:900;color:var(--teal);}
+.stat .lbl{font-size:12px;color:var(--gray);margin-top:4px;}
+
+/* ── SLIDE 3: SOLUTION ── */
+.s-solution{background:linear-gradient(135deg,#004D40,#00695C,#00897B);}
+.s-solution .slide-header .eyebrow{color:var(--teal-mid);}
+.s-solution .slide-header h2{color:#fff;}
+.arch-flow{display:flex;align-items:center;gap:0;margin-top:10px;}
+.arch-node{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:14px;
+  padding:20px 22px;text-align:center;backdrop-filter:blur(8px);}
+.arch-node .icon{font-size:30px;margin-bottom:8px;}
+.arch-node .label{font-size:13px;color:rgba(255,255,255,.9);font-weight:600;}
+.arch-node.center{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5);padding:24px 28px;}
+.arch-node.center .label{font-size:16px;color:#fff;font-weight:800;}
+.arrow{font-size:28px;color:rgba(255,255,255,.5);padding:0 8px;}
+.pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;justify-content:center;}
+.pill{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;
+  padding:8px 18px;color:#fff;font-size:13px;font-weight:500;}
+.pill span{margin-right:6px;}
+
+/* ── SLIDES 4-7: STAKEHOLDERS ── */
+.s-stake{background:var(--off-white);}
+.stake-layout{display:grid;grid-template-columns:280px 1fr;gap:40px;max-width:1000px;width:100%;align-items:start;}
+.stake-hero{background:linear-gradient(160deg,var(--teal),var(--teal-dark));border-radius:24px;
+  padding:36px 28px;text-align:center;color:#fff;}
+.stake-hero .big-icon{font-size:64px;margin-bottom:16px;}
+.stake-hero h2{font-size:26px;font-weight:800;margin-bottom:8px;}
+.stake-hero p{font-size:14px;opacity:.85;line-height:1.6;}
+.stake-hero .demo-screen{margin-top:24px;background:rgba(255,255,255,.15);border-radius:12px;padding:16px;text-align:left;}
+.stake-hero .demo-screen .drow{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.1);}
+.stake-hero .demo-screen .drow:last-child{border:none;}
+.stake-hero .demo-screen .dot2{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.stake-hero .demo-screen .dot2.r{background:var(--warn);}
+.features-col{display:flex;flex-direction:column;gap:14px;}
+.feat{background:#fff;border-radius:14px;padding:18px 22px;box-shadow:0 3px 14px rgba(0,0,0,.07);
+  display:flex;gap:16px;align-items:flex-start;}
+.feat-icon{width:42px;height:42px;border-radius:10px;background:var(--teal-light);display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0;}
+.feat h4{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:4px;}
+.feat p{font-size:13px;color:var(--gray);line-height:1.5;}
+.feat .tag{display:inline-block;background:linear-gradient(90deg,var(--teal),var(--accent));color:#fff;
+  font-size:10px;font-weight:700;border-radius:8px;padding:2px 8px;margin-top:6px;letter-spacing:.5px;}
+
+/* ── SLIDE 8: DIFFERENTIATORS ── */
+.s-diff{background:linear-gradient(135deg,#1A2F35,#0D3D35);}
+.diff-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:1000px;width:100%;margin-top:10px;}
+.diff-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:18px;
+  padding:28px 20px;text-align:center;transition:.3s;}
+.diff-card:hover{background:rgba(255,255,255,.13);transform:translateY(-4px);}
+.diff-card .dicon{font-size:40px;margin-bottom:14px;}
+.diff-card h3{font-size:16px;font-weight:700;color:#fff;margin-bottom:10px;}
+.diff-card p{font-size:13px;color:rgba(255,255,255,.65);line-height:1.6;}
+.diff-card .badge2{margin-top:12px;background:var(--teal);color:#fff;font-size:11px;font-weight:700;
+  border-radius:8px;padding:3px 10px;}
+.s-diff .slide-header .eyebrow{color:var(--teal-mid);}
+.s-diff .slide-header h2{color:#fff;}
+
+/* ── SLIDE 9: TECH STACK ── */
+.s-tech{background:var(--off-white);}
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px;width:100%;margin-top:10px;}
+.tech-card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 3px 14px rgba(0,0,0,.07);
+  text-align:center;}
+.tech-card .ticon{font-size:36px;margin-bottom:10px;}
+.tech-card h4{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:6px;}
+.tech-card p{font-size:12px;color:var(--gray);line-height:1.5;}
+.tech-card .why{margin-top:10px;font-size:11px;font-weight:600;color:var(--teal);background:var(--teal-light);
+  border-radius:8px;padding:4px 10px;display:inline-block;}
+
+/* ── SLIDE 10: SOS FEATURE ── */
+.s-sos{background:linear-gradient(135deg,#4A0000,#B71C1C,#C62828);}
+.s-sos .slide-header .eyebrow{color:#FFCDD2;}
+.s-sos .slide-header h2{color:#fff;}
+.sos-layout{display:grid;grid-template-columns:1fr 1fr;gap:32px;max-width:880px;width:100%;}
+.sos-left{background:rgba(255,255,255,.1);border-radius:20px;padding:32px;border:1px solid rgba(255,255,255,.2);}
+.sos-btn{width:140px;height:140px;border-radius:50%;background:linear-gradient(135deg,#fff,#FFCDD2);
+  display:flex;align-items:center;justify-content:center;font-size:56px;margin:0 auto 20px;
+  box-shadow:0 0 0 16px rgba(255,255,255,.1),0 0 0 32px rgba(255,255,255,.05);}
+.sos-left h3{color:#fff;text-align:center;font-size:22px;font-weight:800;}
+.sos-left p{color:rgba(255,255,255,.8);text-align:center;font-size:13px;margin-top:8px;line-height:1.6;}
+.sos-right{display:flex;flex-direction:column;gap:14px;}
+.sos-feat{background:rgba(255,255,255,.1);border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,.15);}
+.sos-feat h4{color:#fff;font-size:15px;font-weight:700;margin-bottom:6px;}
+.sos-feat p{color:rgba(255,255,255,.75);font-size:13px;line-height:1.5;}
+.sos-plan{display:flex;gap:12px;margin-top:8px;}
+.plan{background:#fff;border-radius:10px;padding:10px 14px;flex:1;text-align:center;}
+.plan .pname{font-size:12px;font-weight:700;color:var(--dark);}
+.plan .pprice{font-size:18px;font-weight:900;color:var(--teal);}
+.plan .pdesc{font-size:11px;color:var(--gray);margin-top:2px;}
+
+/* ── SLIDE 11: IMPACT ── */
+.s-impact{background:var(--off-white);}
+.impact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px;width:100%;margin-top:6px;}
+.impact-card{background:#fff;border-radius:16px;padding:28px 20px;box-shadow:0 3px 16px rgba(0,0,0,.08);text-align:center;}
+.impact-card .big{font-size:48px;font-weight:900;color:var(--teal);line-height:1;}
+.impact-card .unit{font-size:18px;color:var(--teal);}
+.impact-card h4{font-size:15px;font-weight:700;color:var(--dark);margin:10px 0 6px;}
+.impact-card p{font-size:13px;color:var(--gray);line-height:1.5;}
+.vision{margin-top:24px;background:linear-gradient(90deg,var(--teal),var(--accent));border-radius:14px;
+  padding:20px 32px;max-width:860px;width:100%;text-align:center;}
+.vision p{color:#fff;font-size:16px;font-weight:500;line-height:1.6;}
+
+/* ── SLIDE 12: CTA ── */
+.s-cta{background:linear-gradient(160deg,var(--dark) 0%,#0D3D35 60%,#006B5E 100%);}
+.cta-center{text-align:center;}
+.cta-center h2{font-size:56px;font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1.1;}
+.cta-center h2 span{color:var(--teal-mid);}
+.cta-center p{font-size:18px;color:rgba(255,255,255,.7);margin-top:16px;max-width:600px;}
+.next-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;max-width:820px;width:100%;}
+.step{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:22px;text-align:center;}
+.step .num{font-size:32px;font-weight:900;color:var(--teal-mid);}
+.step h4{font-size:14px;font-weight:700;color:#fff;margin:8px 0 6px;}
+.step p{font-size:12px;color:rgba(255,255,255,.6);line-height:1.5;}
+.github-row{margin-top:28px;display:flex;gap:14px;justify-content:center;}
+.gh-btn{background:var(--teal);color:#fff;border:none;border-radius:20px;padding:12px 28px;font-size:14px;
+  font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;}
+.gh-btn.outline{background:transparent;border:2px solid rgba(255,255,255,.35);color:#fff;}
+
+/* keyboard hint */
+#hint{position:fixed;top:20px;right:20px;color:rgba(255,255,255,.4);font-size:12px;z-index:100;}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- ══ SLIDE 1: TITLE ══ -->
+<div class="slide s-title active" id="s0">
+  <div class="hero">
+    <div class="logo-ring">🏥</div>
+    <h1>Med<span>Ecos</span></h1>
+    <p class="tagline">A Unified Digital Medical Ecosystem for India</p>
+    <div class="badge-row">
+      <div class="badge">👨‍⚕️ Doctors</div>
+      <div class="badge">🧑‍💼 Patients</div>
+      <div class="badge">💊 Pharmacists</div>
+      <div class="badge">🔬 Lab Professionals</div>
+    </div>
+    <div class="badge-row" style="margin-top:16px;">
+      <div class="badge" style="background:rgba(0,188,212,.2);border-color:rgba(0,188,212,.4);">🤖 Gemini AI</div>
+      <div class="badge" style="background:rgba(0,188,212,.2);border-color:rgba(0,188,212,.4);">📱 Flutter</div>
+      <div class="badge" style="background:rgba(0,188,212,.2);border-color:rgba(0,188,212,.4);">🔗 ABHA ID</div>
+      <div class="badge" style="background:rgba(0,188,212,.2);border-color:rgba(0,188,212,.4);">🗺️ Geo Maps</div>
+    </div>
+    <p style="color:rgba(255,255,255,.4);font-size:13px;margin-top:36px;">Tanishq Aswar &nbsp;|&nbsp; 2026 &nbsp;|&nbsp; Hackathon Demo</p>
+  </div>
+</div>
+
+<!-- ══ SLIDE 2: PROBLEM ══ -->
+<div class="slide s-problem" id="s1">
+  <div class="slide-header">
+    <div class="eyebrow">The Problem</div>
+    <h2>India's Healthcare is Fragmented 💔</h2>
+  </div>
+  <div class="problem-grid">
+    <div class="prob-card">
+      <div class="icon">📁</div>
+      <h3>Physical Paper Files</h3>
+      <p>Patients carry bulky physical files to every appointment. Records get lost, damaged, or forgotten — making continuity of care nearly impossible.</p>
+    </div>
+    <div class="prob-card">
+      <div class="icon">👨‍⚕️</div>
+      <h3>Doctors Lack History</h3>
+      <p>A doctor meeting a new patient has zero history. Dangerous drug combinations are prescribed unknowingly due to lack of previous prescription data.</p>
+    </div>
+    <div class="prob-card">
+      <div class="icon">💊</div>
+      <h3>Manual Prescription Verification</h3>
+      <p>Pharmacists manually read handwritten prescriptions, causing errors, delays, and potential drug dispensing mistakes that impact patient safety.</p>
+    </div>
+    <div class="prob-card">
+      <div class="icon">🔬</div>
+      <h3>No Digital Lab Workflow</h3>
+      <p>Lab technicians receive handwritten test orders. There's no way for patients to track test status or receive digital results in real time.</p>
+    </div>
+  </div>
+  <div class="stat-bar">
+    <div class="stat"><div class="num">5.2M+</div><div class="lbl">Adverse drug events/year in India</div></div>
+    <div class="stat"><div class="num">67%</div><div class="lbl">Patients use paper-only records</div></div>
+    <div class="stat"><div class="num">₹3,400 Cr</div><div class="lbl">Lost to prescription errors annually</div></div>
+    <div class="stat"><div class="num">>40 min</div><div class="lbl">Avg. first-visit data collection</div></div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 3: SOLUTION ══ -->
+<div class="slide s-solution" id="s2">
+  <div class="slide-header">
+    <div class="eyebrow">The Solution</div>
+    <h2 style="color:#fff;">MedEcos — One Platform. Four Apps. Zero Paper.</h2>
+  </div>
+  <div class="arch-flow" style="flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px;">
+    <div class="arch-node"><div class="icon">👨‍⚕️</div><div class="label">Doctor App</div></div>
+    <div class="arrow">→</div>
+    <div class="arch-node center"><div class="icon">🔗</div><div class="label">MedEcos<br/>Backend + AI</div></div>
+    <div class="arrow">←→</div>
+    <div class="arch-node"><div class="icon">🔬</div><div class="label">Lab App</div></div>
+    <div class="arrow">↕</div>
+  </div>
+  <div class="arch-flow" style="justify-content:center;gap:16px;margin-top:8px;">
+    <div class="arch-node"><div class="icon">🧑‍💼</div><div class="label">Patient App<br/>(ABHA QR)</div></div>
+    <div class="arrow">→</div>
+    <div class="arch-node"><div class="icon">💊</div><div class="label">Pharmacist App</div></div>
+  </div>
+  <div class="pill-row">
+    <div class="pill"><span>🤖</span>Gemini AI Drug Clash Detection</div>
+    <div class="pill"><span>📲</span>QR-Powered Instant Access</div>
+    <div class="pill"><span>🪪</span>ABHA ID Integration</div>
+    <div class="pill"><span>🗺️</span>Geospatial Doctor Discovery</div>
+    <div class="pill"><span>🔔</span>Smart Medicine Reminders</div>
+    <div class="pill"><span>🆘</span>Emergency SOS Helpline</div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 4: DOCTOR APP ══ -->
+<div class="slide s-stake" id="s3">
+  <div class="slide-header" style="margin-bottom:24px;">
+    <div class="eyebrow">Stakeholder 1</div>
+    <h2>Doctor App 👨‍⚕️</h2>
+  </div>
+  <div class="stake-layout">
+    <div class="stake-hero">
+      <div class="big-icon">👨‍⚕️</div>
+      <h2>Doctor Dashboard</h2>
+      <p>Complete clinical control in one screen</p>
+      <div class="demo-screen">
+        <div class="drow"><div class="dot2"></div>Today's Appointments: 12</div>
+        <div class="drow"><div class="dot2"></div>Next: John Doe — 10:30 AM</div>
+        <div class="drow"><div class="dot2 r"></div>AI Alert: Drug Clash Detected</div>
+        <div class="drow"><div class="dot2"></div>Prescriptions Issued: 8</div>
+        <div class="drow"><div class="dot2"></div>QR Scan Ready →</div>
+      </div>
+    </div>
+    <div class="features-col">
+      <div class="feat">
+        <div class="feat-icon">📊</div>
+        <div>
+          <h4>Smart Dashboard</h4>
+          <p>Real-time appointment tracker, patient count stats, pending tasks, and daily summary. Doctors see everything at a glance without switching screens.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📷</div>
+        <div>
+          <h4>QR Scan → Instant Patient History</h4>
+          <p>Scan the patient's ABHA QR code → instantly see all past prescriptions, medicines, allergies, and lab reports. No manual data entry ever.</p>
+          <span class="tag">⚡ INSTANT ACCESS</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🤖</div>
+        <div>
+          <h4>AI Drug Clash Detection (Gemini)</h4>
+          <p>When a doctor prescribes new medicine, Gemini AI cross-checks against all current medicines and flags dangerous interactions in real time with severity scores.</p>
+          <span class="tag">🧠 GEMINI AI</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📋</div>
+        <div>
+          <h4>Digital Prescription Manager</h4>
+          <p>Create, edit, and generate PDF prescriptions with digital signature. Prescriptions are auto-linked to the patient's ABHA profile instantly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 5: PATIENT APP ══ -->
+<div class="slide s-stake" id="s4">
+  <div class="slide-header" style="margin-bottom:24px;">
+    <div class="eyebrow">Stakeholder 2</div>
+    <h2>Patient App 🧑‍💼</h2>
+  </div>
+  <div class="stake-layout">
+    <div class="stake-hero" style="background:linear-gradient(160deg,#00897B,#004D40);">
+      <div class="big-icon">🧑‍💼</div>
+      <h2>Patient Profile</h2>
+      <p>Your health, in your pocket</p>
+      <div class="demo-screen">
+        <div class="drow"><div class="dot2"></div>ABHA ID: 12-3456-7890-1234</div>
+        <div class="drow"><div class="dot2"></div>QR Code: Active ✅</div>
+        <div class="drow"><div class="dot2"></div>Medicines: 3 active</div>
+        <div class="drow"><div class="dot2"></div>Next dose: Paracetamol 8 PM</div>
+        <div class="drow"><div class="dot2 r"></div>Lab Result: CBC — Ready</div>
+      </div>
+    </div>
+    <div class="features-col">
+      <div class="feat">
+        <div class="feat-icon">🪪</div>
+        <div>
+          <h4>ABHA ID → QR Code</h4>
+          <p>Patient's ABHA ID is linked to their entire health profile. One QR scan by any stakeholder gives instant, authorized access to their records.</p>
+          <span class="tag">🇮🇳 ABHA INTEGRATED</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🗺️</div>
+        <div>
+          <h4>Nearby Doctors on Map</h4>
+          <p>Interactive OpenStreetMap showing verified, rated doctors nearby with filter by specialization, availability, distance, and consultation fee.</p>
+          <span class="tag">📍 GEOSPATIAL</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">💊</div>
+        <div>
+          <h4>Medicine Tracker + Reminders</h4>
+          <p>Track all active medicines with timing (before/after meal), get scheduled push notifications and alarms. Mark doses as taken, skipped, or missed.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🔬</div>
+        <div>
+          <h4>Lab Results Viewer + Doctor Ratings</h4>
+          <p>Receive lab results digitally the moment they're updated. Rate and review doctors after consultations to help the community.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 6: PHARMACIST ══ -->
+<div class="slide s-stake" id="s5">
+  <div class="slide-header" style="margin-bottom:24px;">
+    <div class="eyebrow">Stakeholder 3</div>
+    <h2>Pharmacist App 💊</h2>
+  </div>
+  <div class="stake-layout">
+    <div class="stake-hero" style="background:linear-gradient(160deg,#5C6BC0,#283593);">
+      <div class="big-icon">💊</div>
+      <h2>Pharmacist View</h2>
+      <p>Scan QR → Dispense with confidence</p>
+      <div class="demo-screen">
+        <div class="drow"><div class="dot2"></div>Patient: Riya Sharma</div>
+        <div class="drow"><div class="dot2"></div>Rx by: Dr. Priya Mehta ✅ Verified</div>
+        <div class="drow"><div class="dot2"></div>Medicine 1: Amoxicillin 500mg</div>
+        <div class="drow"><div class="dot2"></div>Medicine 2: Cetirizine 10mg</div>
+        <div class="drow"><div class="dot2"></div>Valid until: 15 Mar 2026</div>
+      </div>
+    </div>
+    <div class="features-col">
+      <div class="feat">
+        <div class="feat-icon">📷</div>
+        <div>
+          <h4>QR Scan → Instant Verified Prescription</h4>
+          <p>Pharmacist scans the patient's QR code and instantly sees the verified digital prescription — no handwriting to decode, no manual verification required.</p>
+          <span class="tag">✅ TAMPER-PROOF</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🔒</div>
+        <div>
+          <h4>Doctor Verification Badge</h4>
+          <p>Every prescription is cryptographically linked to a MedEcos-verified doctor. Pharmacists can see the doctor's credentials, registration number, and contact.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">⚡</div>
+        <div>
+          <h4>Zero Manual Entry</h4>
+          <p>All medicine names, dosages, frequencies, and durations are shown digitally. Dramatically reduces dispensing errors and speeds up pharmacy queues.</p>
+          <span class="tag">🚀 10× FASTER</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📜</div>
+        <div>
+          <h4>Prescription Validity Check</h4>
+          <p>System automatically checks prescription expiry date. Expired or already-dispensed prescriptions are flagged instantly to prevent misuse.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 7: LAB ══ -->
+<div class="slide s-stake" id="s6">
+  <div class="slide-header" style="margin-bottom:24px;">
+    <div class="eyebrow">Stakeholder 4</div>
+    <h2>Lab Professional App 🔬</h2>
+  </div>
+  <div class="stake-layout">
+    <div class="stake-hero" style="background:linear-gradient(160deg,#EF6C00,#BF360C);">
+      <div class="big-icon">🔬</div>
+      <h2>Lab Dashboard</h2>
+      <p>Real-time test tracking & digital results</p>
+      <div class="demo-screen">
+        <div class="drow"><div class="dot2"></div>Patient: Arjun Nair</div>
+        <div class="drow"><div class="dot2 r"></div>Test: CBC Blood Count — Pending</div>
+        <div class="drow"><div class="dot2 r"></div>Test: Lipid Profile — In Progress</div>
+        <div class="drow"><div class="dot2"></div>Test: Thyroid Panel — Completed ✅</div>
+        <div class="drow"><div class="dot2"></div>Report Uploaded & Notified</div>
+      </div>
+    </div>
+    <div class="features-col">
+      <div class="feat">
+        <div class="feat-icon">📷</div>
+        <div>
+          <h4>QR Scan → Pending Lab Orders</h4>
+          <p>Lab technician scans the patient's QR and instantly sees all ordered tests, requested by which doctor, ordered date, and priority level.</p>
+          <span class="tag">⚡ INSTANT</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📊</div>
+        <div>
+          <h4>Real-Time Status Updates</h4>
+          <p>Lab professionals update test status (Pending → In Progress → Completed). Patients receive push notifications at every stage automatically.</p>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📤</div>
+        <div>
+          <h4>Digital Result Upload</h4>
+          <p>Upload PDF or structured results directly to the patient's ABHA profile. Doctors are also notified so they can review results immediately.</p>
+          <span class="tag">🔗 AUTO-LINKED TO ABHA</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📈</div>
+        <div>
+          <h4>Longitudinal Trend View</h4>
+          <p>Patients and doctors can see how lab values (HbA1c, BP, cholesterol) trend over time across multiple test instances — all in one timeline.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 8: DIFFERENTIATORS ══ -->
+<div class="slide s-diff" id="s7">
+  <div class="slide-header">
+    <div class="eyebrow">Why MedEcos Wins</div>
+    <h2>Key Differentiators 🏆</h2>
+  </div>
+  <div class="diff-grid">
+    <div class="diff-card">
+      <div class="dicon">🤖</div>
+      <h3>AI Drug Clash Detection</h3>
+      <p>Gemini AI reviews every new prescription against existing medicines. Catches dangerous interactions before the patient takes a single pill.</p>
+      <div class="badge2">UNIQUE</div>
+    </div>
+    <div class="diff-card">
+      <div class="dicon">🪪</div>
+      <h3>ABHA ID Integration</h3>
+      <p>Built on India's Ayushman Bharat Digital Mission. Every patient's QR is linked to their national health ID — interoperable with the government ecosystem.</p>
+      <div class="badge2">GOV-READY</div>
+    </div>
+    <div class="diff-card">
+      <div class="dicon">📲</div>
+      <h3>QR-Based Zero-Friction Access</h3>
+      <p>Any stakeholder can access the right data with a single QR scan. No login friction, no searching — instant, contextual, role-based data delivery.</p>
+      <div class="badge2">FRICTIONLESS</div>
+    </div>
+    <div class="diff-card">
+      <div class="dicon">⭐</div>
+      <h3>Verified Doctor Marketplace</h3>
+      <p>Only MedEcos-verified doctors appear on the patient map. Ratings are from real patients. Builds trust and quality assurance in the ecosystem.</p>
+      <div class="badge2">TRUST LAYER</div>
+    </div>
+  </div>
+  <div class="diff-grid" style="margin-top:16px;">
+    <div class="diff-card">
+      <div class="dicon">🗺️</div>
+      <h3>Geospatial Doctor Discovery</h3>
+      <p>MongoDB's $nearSphere query powers real-time "doctors near me" sorted by distance, powered by GPS. No central-server bottleneck.</p>
+    </div>
+    <div class="diff-card">
+      <div class="dicon">📱</div>
+      <h3>Multi-Platform Flutter</h3>
+      <p>One codebase — Android, iOS, Web, Windows. Every stakeholder app targets the right device without duplicating development effort.</p>
+    </div>
+    <div class="diff-card">
+      <div class="dicon">🔔</div>
+      <h3>Smart Medicine Reminders</h3>
+      <p>Reminders are calculated relative to meal times, not fixed clock times. A missed dose triggers a follow-up. Works offline on Android.</p>
+    </div>
+    <div class="diff-card">
+      <div class="dicon">🆘</div>
+      <h3>Emergency SOS (Care+)</h3>
+      <p>One-tap SOS button alerts family, triggers ambulance, and notifies nearest verified doctor — subscription-based premium safety net.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 9: TECH STACK ══ -->
+<div class="slide s-tech" id="s8">
+  <div class="slide-header">
+    <div class="eyebrow">Under the Hood</div>
+    <h2>Technology Stack ⚙️</h2>
+  </div>
+  <div class="tech-grid">
+    <div class="tech-card">
+      <div class="ticon">📱</div>
+      <h4>Flutter (Dart)</h4>
+      <p>All 4 stakeholder apps built in Flutter. Single codebase deploys to Android, iOS, Web, and Windows Desktop.</p>
+      <span class="why">why: 1 codebase = 4 platforms</span>
+    </div>
+    <div class="tech-card">
+      <div class="ticon">🔥</div>
+      <h4>Firebase / Node.js Backend</h4>
+      <p>Firebase Auth + Firestore for real-time data sync. Node.js + Express for custom APIs. WebSocket for live lab status updates.</p>
+      <span class="why">why: real-time + scalable</span>
+    </div>
+    <div class="tech-card">
+      <div class="ticon">🤖</div>
+      <h4>Google Gemini AI API</h4>
+      <p>Powers the drug interaction detection engine. Caches known drug pairs locally; Gemini is called only for unknown combinations to minimize API usage.</p>
+      <span class="why">why: smart + cost-efficient</span>
+    </div>
+    <div class="tech-card">
+      <div class="ticon">🍃</div>
+      <h4>MongoDB + Geospatial Index</h4>
+      <p>Doctor profiles stored with GeoJSON Point locations. MongoDB's $nearSphere query returns nearby doctors sorted by distance in milliseconds.</p>
+      <span class="why">why: location queries at scale</span>
+    </div>
+    <div class="tech-card">
+      <div class="ticon">📲</div>
+      <h4>QR Code + ABHA API</h4>
+      <p>Patient ABHA ID is encoded as a QR. Integration with Ayushman Bharat Digital Health Mission APIs for official ID verification and record linkage.</p>
+      <span class="why">why: govt. interoperability</span>
+    </div>
+    <div class="tech-card">
+      <div class="ticon">🗺️</div>
+      <h4>flutter_map + OpenStreetMap</h4>
+      <p>Interactive map with doctor location pins, zero API key cost. Geolocator package for GPS. Custom pin widgets indicate availability in real time.</p>
+      <span class="why">why: cost-free, open-source</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 10: SOS FEATURE ══ -->
+<div class="slide s-sos" id="s9">
+  <div class="slide-header">
+    <div class="eyebrow">Additional Feature</div>
+    <h2>🆘 MedEcos Care+ — Emergency SOS</h2>
+  </div>
+  <div class="sos-layout">
+    <div class="sos-left">
+      <div class="sos-btn">🆘</div>
+      <h3>One Tap. Instant Help.</h3>
+      <p>A large, accessible SOS button for elderly patients and those with critical conditions. One tap triggers a cascade of emergency actions simultaneously.</p>
+      <div style="margin-top:16px;">
+        <div style="color:rgba(255,255,255,.9);font-size:13px;margin:6px 0;">✅ Sends GPS location to family</div>
+        <div style="color:rgba(255,255,255,.9);font-size:13px;margin:6px 0;">✅ Alerts nearest verified doctor</div>
+        <div style="color:rgba(255,255,255,.9);font-size:13px;margin:6px 0;">✅ Calls emergency ambulance (108)</div>
+        <div style="color:rgba(255,255,255,.9);font-size:13px;margin:6px 0;">✅ Shares patient's full medical profile</div>
+      </div>
+    </div>
+    <div class="sos-right">
+      <div class="sos-feat">
+        <h4>📋 Emergency Health Card</h4>
+        <p>Displays critical info (blood group, allergies, chronic conditions, emergency contacts) on lock screen even without app unlock.</p>
+      </div>
+      <div class="sos-feat">
+        <h4>👵 Elderly-First Design</h4>
+        <p>Large fonts, high contrast, voice assistance, and fall detection integration (for supported devices). Designed for 60+ age group.</p>
+      </div>
+      <div class="sos-feat">
+        <h4>💳 Subscription Plans</h4>
+        <div class="sos-plan">
+          <div class="plan"><div class="pname">Basic</div><div class="pprice">Free</div><div class="pdesc">Manual SOS only</div></div>
+          <div class="plan"><div class="pname">Care+</div><div class="pprice">₹99/mo</div><div class="pdesc">Auto alert + GPS</div></div>
+          <div class="plan"><div class="pname">Family</div><div class="pprice">₹199/mo</div><div class="pdesc">Up to 5 members</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SLIDE 11: IMPACT ══ -->
+<div class="slide s-impact" id="s10">
+  <div class="slide-header">
+    <div class="eyebrow">Vision & Impact</div>
+    <h2>Making Healthcare Safer, Faster, Smarter 🌏</h2>
+  </div>
+  <div class="impact-grid">
+    <div class="impact-card">
+      <div class="big">80<span class="unit">%</span></div>
+      <h4>Reduction in Dispensing Errors</h4>
+      <p>Digital prescriptions eliminate handwriting misreads. AI catches drug clashes before medicines are dispensed.</p>
+    </div>
+    <div class="impact-card">
+      <div class="big">10<span class="unit">×</span></div>
+      <h4>Faster Patient Onboarding</h4>
+      <p>QR scan replaces 40-minute manual data collection. A doctor gets full patient history in under 3 seconds.</p>
+    </div>
+    <div class="impact-card">
+      <div class="big">1.4<span class="unit">B</span></div>
+      <h4>Indians Can Benefit</h4>
+      <p>ABHA integration means every Indian with an Ayushman Bharat ID can use MedEcos with zero additional registration.</p>
+    </div>
+    <div class="impact-card">
+      <div class="big">0</div>
+      <h4>Paper Records Needed</h4>
+      <p>Complete digital trail for every consultation, prescription, medicine, and lab result — all linked to one QR code.</p>
+    </div>
+    <div class="impact-card">
+      <div class="big">4</div>
+      <h4>Stakeholders, One Ecosystem</h4>
+      <p>Doctors, patients, pharmacists, and lab professionals all connected. Data flows seamlessly without WhatsApp or phone calls.</p>
+    </div>
+    <div class="impact-card">
+      <div class="big">₹3,400<span class="unit">Cr</span></div>
+      <h4>Prescripton Error Losses Recoverable</h4>
+      <p>Digitizing India's prescription chain could recover the annual economic loss from medication errors across the country.</p>
+    </div>
+  </div>
+  <div class="vision">
+    <p>🎯 <strong>Our Vision:</strong> MedEcos becomes the digital backbone of India's primary healthcare system — the app every Indian opens before visiting any doctor, pharmacy, or lab.</p>
+  </div>
+</div>
+
+<!-- ══ SLIDE 12: CTA ══ -->
+<div class="slide s-cta" id="s11">
+  <div class="cta-center">
+    <div style="font-size:56px;margin-bottom:16px;">🏥</div>
+    <h2>Build the Future of<br/><span>Healthcare Together</span></h2>
+    <p>MedEcos isn't just an app — it's an infrastructure layer for India's digital health revolution.</p>
+  </div>
+  <div class="next-steps">
+    <div class="step">
+      <div class="num">01</div>
+      <h4>Backend + MongoDB</h4>
+      <p>Set up geospatial backend, doctor registration API, ABHA OAuth flow, and cloud database.</p>
+    </div>
+    <div class="step">
+      <div class="num">02</div>
+      <h4>Pharmacist & Lab Apps</h4>
+      <p>Build out the Pharmacist QR scanner app and Lab Professional order management app in Flutter.</p>
+    </div>
+    <div class="step">
+      <div class="num">03</div>
+      <h4>Pilot in 1 Clinic</h4>
+      <p>Partner with a local clinic or diagnostic center for a real-world pilot. Collect feedback, iterate, and scale.</p>
+    </div>
+  </div>
+  <div class="github-row">
+    <button class="gh-btn">⭐ Star on GitHub</button>
+    <button class="gh-btn outline">📧 Contact Team</button>
+    <button class="gh-btn outline">📊 View Demo</button>
+  </div>
+  <p style="color:rgba(255,255,255,.4);font-size:13px;margin-top:28px;">MedEcos &nbsp;|&nbsp; Built with Flutter + Gemini AI + ABHA &nbsp;|&nbsp; 2026</p>
+</div>
+
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<div id="nav">
+  <button onclick="go(-1)">←</button>
+  <div id="dots"></div>
+  <button onclick="go(1)">→</button>
+  <div id="counter">1 / 12</div>
+</div>
+<div id="hint">← → arrow keys to navigate</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+let cur = 0;
+const dotsEl = document.getElementById('dots');
+const counter = document.getElementById('counter');
+
+function buildDots(){
+  dotsEl.innerHTML='';
+  slides.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i===0?' on':'');
+    d.onclick=()=>goTo(i);
+    dotsEl.appendChild(d);
+  });
+}
+buildDots();
+
+function goTo(n){
+  if(n<0||n>=slides.length)return;
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('exit');
+  setTimeout(()=>slides[cur].classList.remove('exit'),500);
+  cur=n;
+  slides[cur].classList.add('active');
+  dotsEl.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===cur));
+  counter.textContent=`${cur+1} / ${slides.length}`;
+}
+function go(d){goTo(cur+d);}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')go(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(-1);
+});
+
+// Touch swipe
+let tx=0;
+document.addEventListener('touchstart',e=>tx=e.touches[0].clientX);
+document.addEventListener('touchend',e=>{
+  const dx=tx-e.changedTouches[0].clientX;
+  if(Math.abs(dx)>50)go(dx>0?1:-1);
+});
+</script>
+</body>
+</html>

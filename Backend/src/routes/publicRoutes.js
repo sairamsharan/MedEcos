@@ -1,0 +1,69 @@
+const express = require('express');
+const router = express.Router();
+const crypto = require('crypto');
+const Prescription = require('../models/Prescription');
+const User = require('../models/User');
+
+// Verify Prescription Signature
+router.get('/verify-prescription/:id', async (req, res) => {
+    try {
+        const prescription = await Prescription.findById(req.params.id);
+
+        if (!prescription) {
+            return res.status(404).json({ message: 'Prescription not found' });
+        }
+
+        if (!prescription.digitalSignature) {
+            return res.status(400).json({ message: 'Prescription does not have a digital signature' });
+        }
+
+        // Fetch the doctor who signed it to get their public key
+        const doctor = await User.findById(prescription.doctorId);
+
+        if (!doctor || !doctor.publicKey) {
+            return res.status(404).json({ message: 'Doctor or public key not found for verification' });
+        }
+
+        // Reconstruct the exact same payload used during signing
+        // Note: The structure here MUST exactly match the structure used in doctorRoutes.js
+        // If the structure changes over time, versioning of the payload might be required,
+        // but for now we expect the direct reconstruction to work.
+        const payload = JSON.stringify({
+            abhaId: prescription.abhaId,
+            diagnosis: prescription.diagnosis,
+            // When Mongoose returns an array of embedded documents, it often includes an _id.
+            // We need to map it back to the clean structure used during the signing process.
+            medicines: prescription.medicines.map(m => {
+                const med = { name: m.name };
+                if (m.frequency) med.frequency = m.frequency;
+                if (m.duration) med.duration = m.duration;
+                if (m.medicineId) med.medicineId = m.medicineId;
+                return med;
+            }),
+            labTests: prescription.labTests
+        });
+
+        // Verify the signature
+        const verify = crypto.createVerify('SHA256');
+        verify.update(payload);
+        verify.end();
+
+        const isAuthentic = verify.verify(doctor.publicKey, prescription.digitalSignature, 'base64');
+
+        res.json({
+            prescriptionId: prescription._id,
+            isAuthentic: isAuthentic,
+            signedBy: doctor.username || 'Unknown Doctor',
+            date: prescription.date
+        });
+
+    } catch (error) {
+        console.error(error);
+        if (error.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Invalid Prescription ID format' });
+        }
+        res.status(500).json({ message: 'Server error during verification' });
+    }
+});
+
+module.exports = router;
