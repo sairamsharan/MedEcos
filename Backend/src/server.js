@@ -33,6 +33,15 @@ const patientRoutes = require('./routes/patientRoutes');
 app.use('/api/v1/doctor', doctorRoutes);
 app.use('/api/v1/patient', patientRoutes);
 
+// ABDM Webhook Routes
+const abdmRoutes = require('./routes/abdmRoutes');
+app.use('/api/abdm', abdmRoutes);
+app.use('/v0.5', abdmRoutes);
+
+// Mock ABDM Gateway (For Presentation)
+const mockAbdmGateway = require('./routes/mockAbdmGateway');
+app.use('/mock-gateway', mockAbdmGateway);
+
 // Public Routes
 const publicRoutes = require('./routes/publicRoutes');
 app.use('/api/public', publicRoutes);
