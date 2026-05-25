@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const abdmService = require('../services/abdmService');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -103,26 +104,58 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Generate OTP for ABHA
+// Generate OTP for ABHA via ABDM Gateway
 router.post('/abha/generate-otp', async (req, res) => {
     try {
         const { abhaId } = req.body;
         if (!abhaId) {
             return res.status(400).json({ message: 'ABHA ID is required' });
         }
-        // In a real system, we would trigger an OTP to the linked mobile.
-        // For mock, we just return success.
+
+        const requestId = crypto.randomUUID();
+
+        // 1. Initiate Auth with ABDM Gateway
+        await abdmService.callGateway('/v0.5/users/auth/init', 'POST', {
+            requestId: requestId,
+            timestamp: new Date().toISOString(),
+            query: {
+                id: abhaId,
+                purpose: "LINK",
+                authMode: "MOBILE_OTP",
+                requester: {
+                    type: "HIP",
+                    id: process.env.ABDM_CLIENT_ID + "_HIP"
+                }
+            }
+        });
+
+        // 2. Poll the cache for the webhook callback (wait max 10 seconds)
+        let attempts = 0;
+        let result = null;
+        while (attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (abdmService.cache.has(requestId)) {
+                result = abdmService.cache.get(requestId);
+                break;
+            }
+            attempts++;
+        }
+
+        if (!result || result.status === 'ERROR') {
+            return res.status(500).json({ message: 'ABDM OTP Init Failed. Webhook did not receive callback or Gateway returned error.', error: result?.error });
+        }
+
         res.json({
-            transactionId: 'txn-' + Date.now(),
+            transactionId: result.transactionId,
             message: 'OTP sent to linked mobile'
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: error.message || 'Server error' });
     }
 });
 
-// Verify OTP & Login/Register
+// Verify OTP & Login/Register via ABDM Gateway
 router.post('/abha/verify-otp', async (req, res) => {
     try {
         const { transactionId, otp, abhaId } = req.body;
@@ -131,12 +164,35 @@ router.post('/abha/verify-otp', async (req, res) => {
             return res.status(400).json({ message: 'All fields are required' });
         }
 
-        // Mock verification: OTP must be '123456'
-        if (otp !== '123456') {
-            return res.status(400).json({ message: 'Invalid OTP' });
+        const requestId = crypto.randomUUID();
+
+        // 1. Confirm Auth with ABDM Gateway
+        await abdmService.callGateway('/v0.5/users/auth/confirm', 'POST', {
+            requestId: requestId,
+            timestamp: new Date().toISOString(),
+            transactionId: transactionId,
+            credential: {
+                authCode: otp
+            }
+        });
+
+        // 2. Poll the cache for the webhook callback (wait max 10 seconds)
+        let attempts = 0;
+        let result = null;
+        while (attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (abdmService.cache.has(requestId)) {
+                result = abdmService.cache.get(requestId);
+                break;
+            }
+            attempts++;
         }
 
-        // Check if user exists
+        if (!result || result.status === 'ERROR') {
+            return res.status(400).json({ message: 'Invalid OTP or ABDM Error', error: result?.error });
+        }
+
+        // 3. User authenticated successfully, check if exists in MedEcos DB
         let user = await User.findOne({ abhaId });
 
         if (!user) {
@@ -144,7 +200,8 @@ router.post('/abha/verify-otp', async (req, res) => {
             user = await User.create({
                 abhaId,
                 role: 'Patient',
-                // Optional fields left empty: username, email, password
+                // We can use the demographic data returned by ABDM if needed
+                // name: result.patient?.name
             });
         }
 
@@ -153,11 +210,12 @@ router.post('/abha/verify-otp', async (req, res) => {
             abhaId: user.abhaId,
             role: user.role,
             token: generateToken(user._id, user.role),
+            abdmAccessToken: result.accessToken // Optionally pass ABDM token to frontend
         });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: error.message || 'Server error' });
     }
 });
 
