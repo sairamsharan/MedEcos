@@ -8,6 +8,14 @@ class Prescription {
   final List<Map<String, String>> medicines;
   final List<String> labTests;
 
+  /// Optional fields for digital-signature verification (read-only).
+  final String? doctorName;
+  final String? digitalSignature;
+  final String? signerPublicKeyJson;
+
+  /// True when the prescription carries both a signature blob and its public key.
+  bool get isSigned => digitalSignature != null && signerPublicKeyJson != null;
+
   Prescription({
     required this.id,
     required this.patientId,
@@ -17,5 +25,8 @@ class Prescription {
     required this.diagnosis,
     required this.medicines,
     required this.labTests,
+    this.doctorName,
+    this.digitalSignature,
+    this.signerPublicKeyJson,
   });
 }

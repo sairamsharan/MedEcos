@@ -8,6 +8,14 @@ class Prescription {
   final List<Map<String, String>> medicines;
   final List<String> labTests;
 
+  /// Base64-encoded RSA-PKCS1v15/SHA-256 signature.
+  /// Null until the doctor signs the prescription.
+  final String? digitalSignature;
+
+  /// The doctor's RSA public key (JSON: {n, e}) at the time of signing.
+  /// Stored alongside the signature so any party can verify without a server.
+  final String? signerPublicKeyJson;
+
   Prescription({
     required this.id,
     required this.patientId,
@@ -17,7 +25,12 @@ class Prescription {
     required this.diagnosis,
     required this.medicines,
     required this.labTests,
+    this.digitalSignature,
+    this.signerPublicKeyJson,
   });
+
+  /// True when the prescription carries a valid cryptographic signature.
+  bool get isSigned => digitalSignature != null && signerPublicKeyJson != null;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -28,6 +41,8 @@ class Prescription {
         'diagnosis': diagnosis,
         'medicines': medicines,
         'labTests': labTests,
+        'digitalSignature': digitalSignature,
+        'signerPublicKeyJson': signerPublicKeyJson,
       };
 
   factory Prescription.fromJson(Map<String, dynamic> json) => Prescription(
@@ -41,5 +56,7 @@ class Prescription {
             .map((e) => Map<String, String>.from(e as Map))
             .toList(),
         labTests: List<String>.from(json['labTests'] as List),
+        digitalSignature: json['digitalSignature'] as String?,
+        signerPublicKeyJson: json['signerPublicKeyJson'] as String?,
       );
 }

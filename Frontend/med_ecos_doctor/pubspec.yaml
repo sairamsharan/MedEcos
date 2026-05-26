@@ -45,6 +45,10 @@ dependencies:
   google_generative_ai: ^0.4.6
   flutter_dotenv: ^5.1.0
   http: ^1.1.0
+  # Cryptographic digital signature stack
+  pointycastle: ^3.7.3           # RSA-2048 signing & AES-256 encryption
+  flutter_secure_storage: ^9.0.0 # Secure encrypted storage for private key
+  shared_preferences: ^2.2.0    # Public key storage
 
 dev_dependencies:
   flutter_test:
