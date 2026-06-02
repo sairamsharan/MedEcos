@@ -26,9 +26,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('patient_jwt_token') ?? '';
+      final token = prefs.getString('jwt_token') ?? '';
       final res = await http.get(
-        Uri.parse('http://localhost:5000/api/v1/auth/me'),
+        Uri.parse('http://localhost:5000/api/auth/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (res.statusCode == 200) {
@@ -50,9 +50,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _updateProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('patient_jwt_token') ?? '';
+      final token = prefs.getString('jwt_token') ?? '';
       final res = await http.put(
-        Uri.parse('http://localhost:5000/api/v1/auth/profile'),
+        Uri.parse('http://localhost:5000/api/auth/profile'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
         body: jsonEncode({'address': _addressController.text}),
       );
@@ -87,6 +87,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text('ABHA Address: $abhaId', style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            Text('Age: ${p['age'] ?? 'N/A'} • Gender: ${p['gender'] ?? 'N/A'}', style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 32),
             TextField(
               controller: _addressController,

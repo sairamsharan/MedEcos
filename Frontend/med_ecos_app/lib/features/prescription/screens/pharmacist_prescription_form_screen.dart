@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../services/pdf_service.dart';
 import '../../../core/models/prescription_model.dart';
-import '../../../core/services/data_service.dart';
+import '../../../core/services/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -114,6 +114,7 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
         id: prescriptionId,
         patientId: widget.patientId,
         patientName: widget.patientName,
+        doctorName: "Self Prescribed / OTC",
         pharmacistName: "Pharm. Sairam",
         date: DateTime.now(),
         diagnosis: _symptomsController.text,
@@ -122,13 +123,13 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
       );
 
       // Save to Service
-      DataService().addPrescription(prescription);
+      ApiService().addPrescription(prescription);
 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Prescription Saved Successfully")));
 
       // Generate PDF
       await PdfService.generateAndPrintPrescription(
-        pharmacistName: prescription.pharmacistName,
+        doctorName: prescription.pharmacistName ?? 'Pharmacist',
         patientName: widget.patientName,
         patientId: widget.patientId,
         symptoms: prescription.diagnosis,

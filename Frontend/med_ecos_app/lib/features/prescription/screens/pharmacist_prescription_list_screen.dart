@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/data_service.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../patient/screens/patient_details_screen.dart';
+import 'pharmacist_prescription_form_screen.dart';
+import 'prescription_details_screen.dart';
 
 class PrescriptionListScreen extends StatefulWidget {
   const PrescriptionListScreen({super.key});
@@ -15,7 +16,7 @@ class _PrescriptionListScreenState extends State<PrescriptionListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final prescriptions = DataService().searchPrescriptions(_searchQuery);
+    final prescriptions = ApiService().searchPrescriptions(_searchQuery);
 
     return Column(
       children: [
@@ -83,12 +84,12 @@ class _PrescriptionListScreenState extends State<PrescriptionListScreen> {
                           children: [
                             const SizedBox(height: 4),
                             Text("ID: ${p.id} • ${p.date.toString().split(' ')[0]}"),
-                            Text("${p.pharmacistName} • ${p.medicines.length} Medicines"),
+                            Text("${p.pharmacistName ?? p.doctorName} • ${p.medicines.length} Medicines"),
                           ],
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => PatientDetailsScreen(patientId: p.patientId)));
+                           Navigator.push(context, MaterialPageRoute(builder: (_) => PrescriptionDetailsScreen(prescription: p)));
                         },
                       ),
                     );

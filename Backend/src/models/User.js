@@ -76,7 +76,11 @@ const userSchema = new mongoose.Schema({
     },
     imageInitials: {
         type: String,
-    }
+    },
+    // Track patients that a doctor/pharmacist has explicitly registered/interacted with
+    patients: [{
+        type: String
+    }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

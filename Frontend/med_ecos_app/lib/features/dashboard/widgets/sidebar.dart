@@ -6,11 +6,48 @@ import '../../auth/login_screen.dart';
 class Sidebar extends StatelessWidget {
   final Function(int) onItemSelected;
   final int selectedIndex;
+  final String userRole;
 
-  const Sidebar({super.key, required this.onItemSelected, required this.selectedIndex});
+  const Sidebar({
+    super.key, 
+    required this.onItemSelected, 
+    required this.selectedIndex,
+    required this.userRole,
+  });
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> items = [];
+    
+    if (userRole == 'Patient') {
+      items = [
+        _NavItem(icon: Icons.dashboard, label: "Dashboard", isSelected: selectedIndex == 0, onTap: () => onItemSelected(0)),
+        _NavItem(icon: Icons.receipt_long, label: "Prescriptions", isSelected: selectedIndex == 1, onTap: () => onItemSelected(1)),
+        _NavItem(icon: Icons.calendar_today, label: "Appointments", isSelected: selectedIndex == 2, onTap: () => onItemSelected(2)),
+        _NavItem(icon: Icons.history, label: "History", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
+        const Spacer(),
+        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
+      ];
+    } else if (userRole == 'Doctor') {
+      items = [
+        _NavItem(icon: Icons.dashboard, label: "Dashboard", isSelected: selectedIndex == 0, onTap: () => onItemSelected(0)),
+        _NavItem(icon: Icons.assignment, label: "Prescriptions", isSelected: selectedIndex == 1, onTap: () => onItemSelected(1)),
+        _NavItem(icon: Icons.people, label: "Patients", isSelected: selectedIndex == 2, onTap: () => onItemSelected(2)),
+        _NavItem(icon: Icons.calendar_month, label: "Appointments", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
+        const Spacer(),
+        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
+      ];
+    } else if (userRole == 'Pharmacist') {
+      items = [
+        _NavItem(icon: Icons.dashboard, label: "Dashboard", isSelected: selectedIndex == 0, onTap: () => onItemSelected(0)),
+        _NavItem(icon: Icons.receipt, label: "Prescriptions", isSelected: selectedIndex == 1, onTap: () => onItemSelected(1)),
+        _NavItem(icon: Icons.search, label: "Lookup", isSelected: selectedIndex == 2, onTap: () => onItemSelected(2)),
+        _NavItem(icon: Icons.inventory, label: "Inventory", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
+        const Spacer(),
+        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
+      ];
+    }
+
     return Container(
       color: Colors.white,
       child: Column(
@@ -27,38 +64,9 @@ class Sidebar extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 48),
-          // Navigation Items
-          _NavItem(
-            icon: Icons.dashboard, 
-            label: "Dashboard", 
-            isSelected: selectedIndex == 0,
-            onTap: () => onItemSelected(0),
-          ),
-          _NavItem(
-            icon: Icons.receipt_long,
-            label: "Prescriptions", 
-            isSelected: selectedIndex == 1,
-            onTap: () => onItemSelected(1),
-          ),
-          _NavItem(
-            icon: Icons.calendar_today, 
-            label: "Appointments", 
-            isSelected: selectedIndex == 2,
-            onTap: () => onItemSelected(2),
-          ),
-          _NavItem(
-            icon: Icons.history, 
-            label: "History", 
-            isSelected: selectedIndex == 3,
-            onTap: () => onItemSelected(3),
-          ),
-          const Spacer(),
-          _NavItem(
-            icon: Icons.settings, 
-            label: "Settings", 
-            isSelected: selectedIndex == 4,
-            onTap: () => onItemSelected(4),
-          ),
+          
+          ...items,
+          
           const SizedBox(height: 10),
           _NavItem(
             icon: Icons.logout, 

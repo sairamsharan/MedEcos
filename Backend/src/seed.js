@@ -99,7 +99,7 @@ const seedDatabase = async () => {
             email: 'patient@medecos.com',
             password: defaultPassword,
             role: 'Patient',
-            abhaId: 'jane@abdm',
+            abhaId: '1111-2222-3333-4444',
             address: '123 Link Road, Andheri West',
             location: { lat: 19.1234, lng: 72.8456 }
         });

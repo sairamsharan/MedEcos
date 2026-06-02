@@ -4,7 +4,7 @@
 trap "kill 0" EXIT
 
 echo "======================================"
-echo "    Starting MedEcos Ecosystem        "
+echo "    Starting MedEcos Unified App      "
 echo "======================================"
 
 cd "$(dirname "$0")"
@@ -17,25 +17,10 @@ npm run dev &
 BACKEND_PID=$!
 cd ..
 
-echo "2. Starting Patient Portal (Port 3001)..."
-cd Frontend/med_ecos_patient
-flutter run -d web-server --web-port 3001 &
+echo "2. Starting MedEcos Unified App (Port 3000)..."
+cd Frontend/med_ecos_app
+flutter run -d web-server --web-port 3000 &
 cd ../..
-
-echo "3. Starting Doctor Portal (Port 3002)..."
-cd Frontend/med_ecos_doctor
-flutter run -d web-server --web-port 3002 &
-cd ../..
-
-echo "4. Starting Pharmacist Portal (Port 3003)..."
-cd Frontend/med_ecos_pharmacist
-flutter run -d web-server --web-port 3003 &
-cd ../..
-
-echo "5. Serving Landing Page (Port 3000)..."
-cd Frontend
-python3 -m http.server 3000 &
-cd ..
 
 echo "======================================"
 echo " All services are starting up! "

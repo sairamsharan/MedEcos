@@ -106,6 +106,13 @@ router.post('/patients/abha-register', protect, authorize('Doctor'), async (req,
             await Otp.deleteOne({ _id: otpDoc._id });
         }
 
+        // Track this patient in the doctor's document
+        const provider = await User.findById(req.user.id);
+        if (provider && !provider.patients.includes(abhaId)) {
+            provider.patients.push(abhaId);
+            await provider.save();
+        }
+
         // Return the patient data
         res.json(user);
 
@@ -119,6 +126,51 @@ router.get('/prescriptions/:abhaId', protect, authorize('Doctor'), async (req, r
     try {
         const prescriptions = await Prescription.find({ abhaId: req.params.abhaId }).sort({ date: -1 });
         res.json(prescriptions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get All Prescriptions written by this Doctor
+router.get('/prescriptions', protect, authorize('Doctor'), async (req, res) => {
+    try {
+        const prescriptions = await Prescription.find({ doctorId: req.user.id }).sort({ date: -1 });
+        res.json(prescriptions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update Prescription Status and Notes
+router.put('/prescriptions/:id/notes', protect, authorize('Doctor'), async (req, res) => {
+    try {
+        const { status, doctorNotes } = req.body;
+        const prescription = await Prescription.findOne({ _id: req.params.id, doctorId: req.user.id });
+        
+        if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
+        
+        if (status) prescription.status = status;
+        if (doctorNotes !== undefined) prescription.doctorNotes = doctorNotes;
+        
+        await prescription.save();
+        res.json(prescription);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get Doctor's Patients
+router.get('/patients', protect, authorize('Doctor'), async (req, res) => {
+    try {
+        const provider = await User.findById(req.user.id);
+        const uniqueAbhaIds = await Prescription.distinct('abhaId', { doctorId: req.user.id });
+        const allPatientIds = [...new Set([...uniqueAbhaIds, ...(provider.patients || [])])];
+        
+        const patients = await User.find({ abhaId: { $in: allPatientIds }, role: 'Patient' });
+        res.json(patients);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -141,12 +193,14 @@ router.get('/dashboard-stats', protect, authorize('Doctor'), async (req, res) =>
             status: 'Pending' 
         });
         
-        const uniquePatients = (await Prescription.distinct('abhaId', { doctorId: req.user.id })).length;
+        const provider = await User.findById(req.user.id);
+        const uniqueAbhaIds = await Prescription.distinct('abhaId', { doctorId: req.user.id });
+        const allPatientIds = [...new Set([...uniqueAbhaIds, ...(provider.patients || [])])];
 
         res.json({
             appointmentsToday,
             pendingReports,
-            totalPatients: uniquePatients
+            totalPatients: allPatientIds.length
         });
     } catch (error) {
         console.error(error);

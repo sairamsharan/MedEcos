@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../services/pdf_service.dart';
 import '../../../core/models/prescription_model.dart';
-import '../../../core/services/data_service.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/services/gemini_service.dart';
 import '../../../core/utils/medicine_utils.dart';
 import 'package:http/http.dart' as http;
@@ -91,7 +91,7 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
 
     // Get current patient's meds from data service to include in the list of what they are already taking
     final patientId = widget.patientId;
-    final patientPrescriptions = DataService().getPrescriptionsForPatient(patientId);
+    final patientPrescriptions = ApiService().getPrescriptionsForPatient(patientId);
     final currentMedsSet = <String>{};
     
     // Process all past prescriptions to find currently ACTIVE medicines
@@ -193,7 +193,7 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
       );
 
       // Save to Service
-      DataService().addPrescription(prescription);
+      ApiService().addPrescription(prescription);
 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Prescription Saved Successfully")));
       

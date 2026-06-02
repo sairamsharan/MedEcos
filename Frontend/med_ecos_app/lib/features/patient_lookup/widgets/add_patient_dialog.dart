@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/models/patient_model.dart';
-import '../../../core/services/data_service.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/abha_formatter.dart';
 
 class AddPatientDialog extends StatefulWidget {
   const AddPatientDialog({super.key});
@@ -12,81 +12,80 @@ class AddPatientDialog extends StatefulWidget {
 
 class _AddPatientDialogState extends State<AddPatientDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _contactController = TextEditingController();
-  String _gender = 'Male';
+  final _abhaController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  void _savePatient() {
+  Future<void> _registerPatient() async {
     if (_formKey.currentState!.validate()) {
-      final id = "PAT-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}";
-      final patient = Patient(
-        id: id,
-        name: _nameController.text,
-        age: int.parse(_ageController.text),
-        gender: _gender,
-        contact: _contactController.text,
-      );
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
 
-      DataService().addPatient(patient);
-      Navigator.pop(context, patient);
+      try {
+        final patient = await ApiService().registerPatientViaAbha(_abhaController.text);
+        if (mounted) {
+          Navigator.pop(context, patient);
+        }
+      } catch (e) {
+        setState(() {
+          _errorMessage = e.toString().contains('message') 
+              ? e.toString() 
+              : 'Failed to fetch ABDM data or invalid ABHA ID';
+        });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Register New Patient"),
+      title: const Text("Register Patient via ABDM"),
       content: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: "Full Name"),
-                validator: (v) => v!.isEmpty ? "Required" : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Enter the patient's ABHA ID. Their details will be fetched automatically from the ABDM database.",
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _abhaController,
+              inputFormatters: [AbhaInputFormatter()],
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "ABHA ID",
+                hintText: "1111-2222-3333-4444",
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _ageController,
-                      decoration: const InputDecoration(labelText: "Age"),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? "Required" : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _gender,
-                      items: ['Male', 'Female', 'Other'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (v) => setState(() => _gender = v!),
-                      decoration: const InputDecoration(labelText: "Gender"),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _contactController,
-                decoration: const InputDecoration(labelText: "Contact Number"),
-                keyboardType: TextInputType.phone,
-                validator: (v) => v!.isEmpty ? "Required" : null,
-              ),
-            ],
-          ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return "Required";
+                if (v.length < 17) return "Invalid ABHA format";
+                return null;
+              },
+            ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+            ]
+          ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
         ElevatedButton(
-          onPressed: _savePatient, 
+          onPressed: _isLoading ? null : _registerPatient, 
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-          child: const Text("Register"),
+          child: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("Fetch & Register"),
         ),
       ],
     );

@@ -26,7 +26,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   Future<void> _fetchAppointments() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('doctor_jwt_token') ?? '';
+      final token = prefs.getString('jwt_token') ?? '';
       
       final response = await http.get(
         Uri.parse('http://localhost:5000/api/v1/doctor/appointments'),
@@ -59,7 +59,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   Future<void> _acceptAppointment(String id) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('doctor_jwt_token') ?? '';
+      final token = prefs.getString('jwt_token') ?? '';
       
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/v1/doctor/appointments/$id/accept'),
@@ -135,7 +135,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     Navigator.pop(context);
                     try {
                       final prefs = await SharedPreferences.getInstance();
-                      final token = prefs.getString('doctor_jwt_token') ?? '';
+                      final token = prefs.getString('jwt_token') ?? '';
                       
                       final response = await http.post(
                         Uri.parse('http://localhost:5000/api/v1/doctor/appointments/$id/reschedule'),
@@ -226,6 +226,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             Text('Status: $status', style: TextStyle(color: status == 'Confirmed' ? Colors.green : Colors.orange)),
                             const SizedBox(height: 8),
                             Text('Date: ${DateFormat.yMMMd().add_jm().format(date)}'),
+                            if (appt['notes'] != null && appt['notes'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text('Reason: ${appt['notes']}', style: const TextStyle(fontStyle: FontStyle.italic)),
+                            ],
                             if (isPending) ...[
                               const SizedBox(height: 16),
                               Row(

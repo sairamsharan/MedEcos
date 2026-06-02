@@ -26,7 +26,7 @@ void main() async {
   }
 
   final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('patient_jwt_token');
+  final token = prefs.getString('jwt_token');
 
   runApp(MyApp(initialToken: token));
 }
@@ -39,9 +39,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MedEcos Patient',
+      title: 'MedEcos App',
       theme: AppTheme.lightTheme,
-      home: initialToken != null ? const DashboardScreen() : const LoginScreen(),
+      home: initialToken != null && initialToken!.isNotEmpty ? const DashboardScreen() : const LoginScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
 const Prescription = require('../models/Prescription');
+const User = require('../models/User');
 
 // Get Dashboard Stats
 router.get('/dashboard-stats', protect, authorize('Pharmacist'), async (req, res) => {
@@ -13,13 +14,119 @@ router.get('/dashboard-stats', protect, authorize('Pharmacist'), async (req, res
             date: { $gte: today } 
         });
         
-        const uniqueCustomers = (await Prescription.distinct('abhaId')).length;
-
+        const provider = await User.findById(req.user.id);
+        const uniqueAbhaIds = await Prescription.distinct('abhaId');
+        const allPatientIds = [...new Set([...uniqueAbhaIds, ...(provider.patients || [])])];
+        
         res.json({
             prescriptionsToday,
-            pendingOrders: 5, // Mocked 
-            totalCustomers: uniqueCustomers
+            pendingOrders: 0, 
+            totalCustomers: allPatientIds.length
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Register Patient via ABHA OTP (Pharmacist)
+router.post('/patients/abha-register', protect, authorize('Pharmacist'), async (req, res) => {
+    try {
+        const { transactionId, otp, abhaId } = req.body;
+
+        if (!transactionId || !otp || !abhaId) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        const Otp = require('../models/Otp');
+        
+        // Verify OTP
+        let otpDoc = null;
+        if (transactionId === 'txn-mock') {
+            if (otp !== '123456') {
+                return res.status(400).json({ message: 'Invalid OTP' });
+            }
+        } else {
+            otpDoc = await Otp.findOne({ transactionId, abhaId });
+            if (!otpDoc || otpDoc.otp !== otp) {
+                return res.status(400).json({ message: 'Invalid OTP or transaction expired' });
+            }
+        }
+
+        // Check if user exists
+        let user = await User.findOne({ abhaId });
+
+        if (!user) {
+            const MockABDMUser = require('../models/MockABDMUser');
+            const abdmData = await MockABDMUser.findOne({ abhaId });
+            
+            user = await User.create({
+                abhaId,
+                role: 'Patient',
+                username: abdmData ? abdmData.name : `patient_${abhaId.replace(/-/g, '')}`,
+                age: abdmData ? abdmData.age : undefined,
+                gender: abdmData ? abdmData.gender : undefined,
+            });
+        }
+
+        if (otpDoc) {
+            await Otp.deleteOne({ _id: otpDoc._id });
+        }
+
+        // Track this patient in the pharmacist's document
+        const provider = await User.findById(req.user.id);
+        if (provider && !provider.patients.includes(abhaId)) {
+            provider.patients.push(abhaId);
+            await provider.save();
+        }
+
+        // Return the patient data
+        res.json(user);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message || 'Server error' });
+    }
+});
+
+// Get Pharmacist's Patients
+router.get('/patients', protect, authorize('Pharmacist'), async (req, res) => {
+    try {
+        const provider = await User.findById(req.user.id);
+        const uniqueAbhaIds = await Prescription.distinct('abhaId'); // For pharmacist, it might just be all prescriptions or just those they interacted with
+        const allPatientIds = [...new Set([...uniqueAbhaIds, ...(provider.patients || [])])];
+        
+        const patients = await User.find({ abhaId: { $in: allPatientIds }, role: 'Patient' });
+        res.json(patients);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get Pharmacist's Prescriptions
+router.get('/prescriptions', protect, authorize('Pharmacist'), async (req, res) => {
+    try {
+        const prescriptions = await Prescription.find().sort({ date: -1 });
+        res.json(prescriptions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update Prescription Pharmacist Notes
+router.put('/prescriptions/:id/notes', protect, authorize('Pharmacist'), async (req, res) => {
+    try {
+        const { pharmacistNotes } = req.body;
+        const prescription = await Prescription.findById(req.params.id);
+        
+        if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
+        
+        if (pharmacistNotes !== undefined) prescription.pharmacistNotes = pharmacistNotes;
+        
+        await prescription.save();
+        res.json(prescription);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

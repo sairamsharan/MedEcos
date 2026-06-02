@@ -23,6 +23,17 @@ const prescriptionSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    status: {
+        type: String,
+        enum: ['Active', 'Past'],
+        default: 'Active'
+    },
+    doctorNotes: {
+        type: String,
+    },
+    pharmacistNotes: {
+        type: String,
+    },
     medicines: [{
         name: { type: String, required: true },
         medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine' },

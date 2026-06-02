@@ -17,6 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _abhaController = TextEditingController();
+  String _selectedRole = 'Patient';
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -34,8 +35,8 @@ class _SignupScreenState extends State<SignupScreen> {
           'username': _usernameController.text,
           'email': _emailController.text,
           'password': _passwordController.text,
-          'abhaId': _abhaController.text,
-          'role': 'Patient',
+          'abhaId': _selectedRole == 'Patient' ? _abhaController.text : '',
+          'role': _selectedRole,
         }),
       );
 
@@ -43,8 +44,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (response.statusCode == 201) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('patient_jwt_token', data['token']);
-        await prefs.setString('patient_user_id', data['_id']);
+        await prefs.setString('jwt_token', data['token']);
+        await prefs.setString('user_id', data['_id']);
+        await prefs.setString('user_role', data['role']);
         
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -70,7 +72,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient Registration')),
+      appBar: AppBar(title: const Text('MedEcos Registration')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
@@ -98,16 +100,34 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _abhaController,
-                  inputFormatters: [AbhaInputFormatter()],
-                  keyboardType: TextInputType.number,
+                DropdownButtonFormField<String>(
+                  value: _selectedRole,
                   decoration: const InputDecoration(
-                    labelText: 'ABHA ID (e.g. 1111-2222-3333-4444)',
+                    labelText: 'Role',
                     border: OutlineInputBorder(),
                   ),
+                  items: ['Patient', 'Doctor', 'Pharmacist'].map((role) {
+                    return DropdownMenuItem(value: role, child: Text(role));
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedRole = val!;
+                    });
+                  },
                 ),
                 const SizedBox(height: 16),
+                if (_selectedRole == 'Patient') ...[
+                  TextField(
+                    controller: _abhaController,
+                    inputFormatters: [AbhaInputFormatter()],
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'ABHA ID (e.g. 1111-2222-3333-4444)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: _passwordController,
                   obscureText: true,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/services/data_service.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/models/patient_model.dart';
 import 'patient_details_screen.dart';
 import '../widgets/add_patient_dialog.dart';
@@ -33,6 +33,7 @@ class _PatientLookupScreenState extends State<PatientLookupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Patient ${result.name} registered successfully!")),
       );
+      setState(() {});
     }
   }
 
@@ -158,7 +159,7 @@ class _PatientLookupScreenState extends State<PatientLookupScreen> {
                         if (textEditingValue.text.isEmpty) {
                           return const Iterable<Patient>.empty();
                         }
-                        return DataService().searchPatients(textEditingValue.text);
+                        return ApiService().searchPatients(textEditingValue.text);
                       },
                       displayStringForOption: (Patient patient) => patient.name,
                       optionsViewBuilder: _buildOptionsView,
@@ -188,7 +189,7 @@ class _PatientLookupScreenState extends State<PatientLookupScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text("QR Scanner: Simulating patient lookup..."))
                               );
-                              final patients = DataService().patients;
+                              final patients = ApiService().patients;
                               if (patients.isNotEmpty) {
                                 _navigateToDetails(patients.first.id);
                               }
@@ -240,10 +241,10 @@ class _PatientLookupScreenState extends State<PatientLookupScreen> {
                   const SizedBox(height: 16),
                   Expanded(
                     child: ListView.separated(
-                      itemCount: DataService().patients.length,
+                      itemCount: ApiService().patients.length,
                       separatorBuilder: (c, i) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final patient = DataService().patients[index];
+                        final patient = ApiService().patients[index];
                         return Card(
                           elevation: 0,
                           shape: RoundedRectangleBorder(

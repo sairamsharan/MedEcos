@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/data_service.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/models/prescription_model.dart';
 import '../../../core/theme/app_colors.dart';
-import 'prescription_form_screen.dart';
-import '../../patient/screens/patient_details_screen.dart';
+import 'doctor_prescription_form_screen.dart';
+import 'prescription_details_screen.dart';
 
 class PrescriptionListScreen extends StatefulWidget {
   const PrescriptionListScreen({super.key});
@@ -17,7 +17,7 @@ class _PrescriptionListScreenState extends State<PrescriptionListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final prescriptions = DataService().searchPrescriptions(_searchQuery);
+    final prescriptions = ApiService().searchPrescriptions(_searchQuery);
 
     return Column(
       children: [
@@ -90,9 +90,7 @@ class _PrescriptionListScreenState extends State<PrescriptionListScreen> {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                           // Navigate to detail view or re-open form in view mode
-                           // For now, we can show a simple dialog or navigate to patient details
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => PatientDetailsScreen(patientId: p.patientId)));
+                           Navigator.push(context, MaterialPageRoute(builder: (_) => PrescriptionDetailsScreen(prescription: p)));
                         },
                       ),
                     );
