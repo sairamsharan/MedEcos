@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const abdmService = require('../services/abdmService');
 const Otp = require('../models/Otp');
+const { protect } = require('../middleware/authMiddleware');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -283,5 +284,56 @@ const generateToken = (id, role) => {
         expiresIn: '30d',
     });
 };
+
+// Get current user profile
+router.get('/me', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password -privateKey -aadhaarNumber');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update user profile
+router.put('/profile', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Standard fields
+        if (req.body.username !== undefined) user.username = req.body.username;
+        if (req.body.address !== undefined) user.address = req.body.address;
+        if (req.body.location !== undefined) user.location = req.body.location;
+        if (req.body.age !== undefined) user.age = req.body.age;
+        if (req.body.gender !== undefined) user.gender = req.body.gender;
+
+        // Doctor specific fields
+        if (user.role === 'Doctor') {
+            if (req.body.speciality !== undefined) user.speciality = req.body.speciality;
+            if (req.body.experienceYears !== undefined) user.experienceYears = req.body.experienceYears;
+            if (req.body.consultationFee !== undefined) user.consultationFee = req.body.consultationFee;
+            if (req.body.hospital !== undefined) user.hospital = req.body.hospital;
+        }
+
+        const updatedUser = await user.save();
+        
+        // Remove sensitive fields before returning
+        updatedUser.password = undefined;
+        updatedUser.privateKey = undefined;
+        updatedUser.aadhaarNumber = undefined;
+
+        res.json(updatedUser);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 module.exports = router;

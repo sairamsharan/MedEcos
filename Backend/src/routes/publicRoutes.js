@@ -3,6 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const Prescription = require('../models/Prescription');
 const User = require('../models/User');
+const Medicine = require('../models/Medicine');
 
 // Verify Prescription Signature
 router.get('/verify-prescription/:id', async (req, res) => {
@@ -90,6 +91,28 @@ router.get('/prescriptions/:id', async (req, res) => {
         if (error.kind === 'ObjectId') {
             return res.status(404).json({ message: 'Invalid/not found Prescription ID format' });
         }
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all verified doctors
+router.get('/doctors', async (req, res) => {
+    try {
+        const doctors = await User.find({ role: 'Doctor' }).select('-password -privateKey -aadhaarNumber');
+        res.json(doctors);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all medicines
+router.get('/medicines', async (req, res) => {
+    try {
+        const medicines = await Medicine.find().sort({ name: 1 });
+        res.json(medicines);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });

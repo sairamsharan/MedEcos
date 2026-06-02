@@ -10,6 +10,10 @@ const medicineSchema = new mongoose.Schema({
     chemicalFormula: {
         type: String,
         trim: true,
+    },
+    doctorOnly: {
+        type: Boolean,
+        default: false,
     }
 }, { timestamps: true });
 

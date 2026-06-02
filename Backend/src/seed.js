@@ -35,7 +35,7 @@ const seedDatabase = async () => {
         const salt = await bcrypt.genSalt(10);
         const defaultPassword = await bcrypt.hash('password123', salt);
 
-        // 1. Create Doctor
+        // 1. Create Doctor 1
         const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
             modulusLength: 2048,
             publicKeyEncoding: { type: 'spki', format: 'pem' },
@@ -47,7 +47,50 @@ const seedDatabase = async () => {
             password: defaultPassword,
             role: 'Doctor',
             publicKey,
-            privateKey
+            privateKey,
+            speciality: 'General Physician',
+            address: 'Apollo Clinic, Andheri',
+            hospital: 'Apollo Clinic, Andheri',
+            imageInitials: 'JD',
+            location: { lat: 19.1196, lng: 72.8468 },
+            experienceYears: 12,
+            consultationFee: 400,
+            rating: 4.8,
+            reviewCount: 312
+        });
+
+        // Create Doctor 2
+        const doctor2 = await User.create({
+            username: 'Dr. Rajesh Mehta',
+            email: 'doctor2@medecos.com',
+            password: defaultPassword,
+            role: 'Doctor',
+            speciality: 'Cardiologist',
+            address: 'Kokilaben Hospital, Versova',
+            hospital: 'Kokilaben Hospital, Versova',
+            imageInitials: 'RM',
+            location: { lat: 19.1313, lng: 72.8197 },
+            experienceYears: 20,
+            consultationFee: 900,
+            rating: 4.9,
+            reviewCount: 518
+        });
+
+        // Create Doctor 3
+        const doctor3 = await User.create({
+            username: 'Dr. Sneha Patil',
+            email: 'doctor3@medecos.com',
+            password: defaultPassword,
+            role: 'Doctor',
+            speciality: 'Pediatrician',
+            address: 'Rainbow Children\'s Clinic',
+            hospital: 'Rainbow Children\'s Clinic',
+            imageInitials: 'SP',
+            location: { lat: 19.1110, lng: 72.8578 },
+            experienceYears: 10,
+            consultationFee: 500,
+            rating: 4.9,
+            reviewCount: 421
         });
 
         // 2. Create Patient
@@ -56,7 +99,9 @@ const seedDatabase = async () => {
             email: 'patient@medecos.com',
             password: defaultPassword,
             role: 'Patient',
-            abhaId: 'jane@abdm'
+            abhaId: 'jane@abdm',
+            address: '123 Link Road, Andheri West',
+            location: { lat: 19.1234, lng: 72.8456 }
         });
 
         // 3. Create Pharmacist
@@ -64,7 +109,9 @@ const seedDatabase = async () => {
             username: 'Pharma Care',
             email: 'pharmacist@medecos.com',
             password: defaultPassword,
-            role: 'Pharmacist'
+            role: 'Pharmacist',
+            address: 'Sion Circle, Mumbai',
+            location: { lat: 19.0430, lng: 72.8627 }
         });
 
         // 4. Create Appointments
@@ -88,6 +135,15 @@ const seedDatabase = async () => {
             patientName: 'Random User',
             date: new Date(Date.now() + 86400000), // Tomorrow
             status: 'Pending'
+        });
+        await Appointment.create({
+            doctorId: doctor._id,
+            abhaId: patient.abhaId,
+            patientName: patient.username,
+            date: new Date(Date.now() + 172800000), // In 2 days
+            status: 'RescheduleRequested',
+            rescheduleDate: new Date(Date.now() + 180000000),
+            rescheduleNotes: 'Doctor is busy during requested time, how about later?'
         });
 
         // 5. Create Prescriptions
@@ -120,17 +176,28 @@ const seedDatabase = async () => {
         // 6. Create Medicines (Inventory)
         await Medicine.create({
             name: 'Paracetamol 500mg',
-            dosage: '500mg',
-            frequency: 3,
-            timings: [],
-            stock: 150
+            chemicalFormula: 'C8H9NO2',
+            doctorOnly: false
         });
         await Medicine.create({
-            name: 'Vitamin C',
-            dosage: '200mg',
-            frequency: 1,
-            timings: [],
-            stock: 300
+            name: 'Vitamin C 200mg',
+            chemicalFormula: 'C6H8O6',
+            doctorOnly: false
+        });
+        await Medicine.create({
+            name: 'Amoxicillin 500mg',
+            chemicalFormula: 'C16H19N3O5S',
+            doctorOnly: true
+        });
+        await Medicine.create({
+            name: 'Aspirin 75mg',
+            chemicalFormula: 'C9H8O4',
+            doctorOnly: true
+        });
+        await Medicine.create({
+            name: 'Cetirizine 10mg',
+            chemicalFormula: 'C21H25ClN2O3',
+            doctorOnly: false
         });
 
         console.log('Seeding Completed Successfully!');

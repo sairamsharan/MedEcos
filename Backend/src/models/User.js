@@ -44,6 +44,38 @@ const userSchema = new mongoose.Schema({
     privateKey: {
         type: String, // Store PEM formatted key
         select: false, // Ensure not returned in normal queries
+    },
+    // New Profile Fields
+    address: {
+        type: String,
+    },
+    location: {
+        lat: { type: Number },
+        lng: { type: Number },
+    },
+    // Doctor Specific Fields
+    speciality: {
+        type: String,
+    },
+    experienceYears: {
+        type: Number,
+    },
+    consultationFee: {
+        type: Number,
+    },
+    rating: {
+        type: Number,
+        default: 0,
+    },
+    reviewCount: {
+        type: Number,
+        default: 0,
+    },
+    hospital: {
+        type: String,
+    },
+    imageInitials: {
+        type: String,
     }
 }, { timestamps: true });
 

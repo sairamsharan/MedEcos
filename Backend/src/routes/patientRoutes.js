@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
 const Prescription = require('../models/Prescription');
 const MedicineHistory = require('../models/MedicineHistory');
+const Appointment = require('../models/Appointment');
 
 // Get My Medical History (Prescriptions)
 router.get('/prescriptions', protect, authorize('Patient'), async (req, res) => {
@@ -106,6 +107,65 @@ router.get('/history', protect, authorize('Patient'), async (req, res) => {
 
         const history = await MedicineHistory.find({ abhaId }).sort({ takenTime: -1 });
         res.json(history);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all appointments for a patient
+router.get('/appointments', protect, authorize('Patient'), async (req, res) => {
+    try {
+        const abhaId = req.user.abhaId;
+        const appointments = await Appointment.find({ abhaId }).populate('doctorId', 'username speciality').sort({ date: 1 });
+        res.json(appointments);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Create new appointment
+router.post('/appointments', protect, authorize('Patient'), async (req, res) => {
+    try {
+        const { doctorId, date, notes } = req.body;
+        const abhaId = req.user.abhaId;
+        
+        if (!doctorId || !date) return res.status(400).json({ message: 'doctorId and date are required' });
+
+        const appointment = await Appointment.create({
+            doctorId,
+            abhaId,
+            patientName: req.user.username,
+            date,
+            notes,
+            status: 'Pending'
+        });
+        res.status(201).json(appointment);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Accept reschedule request
+router.post('/appointments/:id/accept-reschedule', protect, authorize('Patient'), async (req, res) => {
+    try {
+        const abhaId = req.user.abhaId;
+        const appointment = await Appointment.findOne({ _id: req.params.id, abhaId });
+        if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+        
+        if (appointment.status !== 'RescheduleRequested') {
+            return res.status(400).json({ message: 'Appointment is not in RescheduleRequested status' });
+        }
+        
+        appointment.status = 'Confirmed';
+        appointment.date = appointment.rescheduleDate;
+        appointment.rescheduleDate = undefined;
+        appointment.rescheduleNotes = undefined;
+        
+        await appointment.save();
+        res.json(appointment);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

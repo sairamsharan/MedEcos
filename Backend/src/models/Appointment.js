@@ -20,10 +20,16 @@ const appointmentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled'],
+        enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled', 'RescheduleRequested'],
         default: 'Pending'
     },
     notes: {
+        type: String
+    },
+    rescheduleDate: {
+        type: Date
+    },
+    rescheduleNotes: {
         type: String
     }
 }, { timestamps: true });

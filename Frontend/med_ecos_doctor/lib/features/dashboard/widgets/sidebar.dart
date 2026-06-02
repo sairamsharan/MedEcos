@@ -52,8 +52,8 @@ class Sidebar extends StatelessWidget {
           ),
           const Spacer(),
           _NavItem(
-            icon: Icons.settings, 
-            label: "Settings", 
+            icon: Icons.person, 
+            label: "Profile", 
             isSelected: selectedIndex == 4,
             onTap: () => onItemSelected(4),
           ),

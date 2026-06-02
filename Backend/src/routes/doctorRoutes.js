@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
 const Prescription = require('../models/Prescription');
 const User = require('../models/User');
+const Appointment = require('../models/Appointment');
 
 const crypto = require('crypto');
 
@@ -127,7 +128,6 @@ router.get('/prescriptions/:abhaId', protect, authorize('Doctor'), async (req, r
 // Get Dashboard Stats
 router.get('/dashboard-stats', protect, authorize('Doctor'), async (req, res) => {
     try {
-        const Appointment = require('../models/Appointment');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
@@ -148,6 +148,52 @@ router.get('/dashboard-stats', protect, authorize('Doctor'), async (req, res) =>
             pendingReports,
             totalPatients: uniquePatients
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all appointments for a doctor
+router.get('/appointments', protect, authorize('Doctor'), async (req, res) => {
+    try {
+        const appointments = await Appointment.find({ doctorId: req.user.id }).sort({ date: 1 });
+        res.json(appointments);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Accept appointment
+router.post('/appointments/:id/accept', protect, authorize('Doctor'), async (req, res) => {
+    try {
+        const appointment = await Appointment.findOne({ _id: req.params.id, doctorId: req.user.id });
+        if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+        
+        appointment.status = 'Confirmed';
+        await appointment.save();
+        res.json(appointment);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Reschedule appointment
+router.post('/appointments/:id/reschedule', protect, authorize('Doctor'), async (req, res) => {
+    try {
+        const { rescheduleDate, rescheduleNotes } = req.body;
+        if (!rescheduleDate) return res.status(400).json({ message: 'rescheduleDate is required' });
+
+        const appointment = await Appointment.findOne({ _id: req.params.id, doctorId: req.user.id });
+        if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+        
+        appointment.status = 'RescheduleRequested';
+        appointment.rescheduleDate = rescheduleDate;
+        appointment.rescheduleNotes = rescheduleNotes;
+        await appointment.save();
+        res.json(appointment);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

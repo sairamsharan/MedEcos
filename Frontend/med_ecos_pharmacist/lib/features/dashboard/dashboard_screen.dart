@@ -9,6 +9,7 @@ import 'widgets/stat_card.dart';
 import '../prescription/screens/prescription_list_screen.dart';
 import '../patient/screens/patient_lookup_screen.dart';
 import 'screens/inventory_screen.dart';
+import '../profile/screens/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -80,7 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 3:
         return const InventoryScreen();
       case 4:
-        return const Center(child: Text("Settings Placeholder"));
+        return const ProfileScreen();
       default:
         return const Center(child: Text("Coming Soon"));
     }
