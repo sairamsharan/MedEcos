@@ -1,15 +1,21 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/medicine_model.dart';
-import '../../../core/services/database_service.dart';
-import '../../../features/medicines/widgets/add_medicine_dialog.dart';
 import '../../../features/medicines/screens/medicine_list_screen.dart';
 import '../../../features/settings/screens/settings_screen.dart';
 import '../../../features/history/screens/history_screen.dart';
 import '../../../core/services/preferences_service.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../features/doctors/screens/doctors_map_screen.dart';
+import '../../prescriptions/screens/prescriptions_screen.dart';
+import '../widgets/sidebar.dart';
+import '../widgets/header.dart';
+import '../widgets/stat_card.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,13 +25,17 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final DatabaseService _db = DatabaseService();
   final PreferencesService _prefs = PreferencesService();
   final NotificationService _notifications = NotificationService();
+  
   List<Medicine> _medicines = [];
   Map<String, String> _timeLabels = {};
   bool _loading = true;
   String? _error;
+  int _selectedIndex = 0;
+  
+  int _activeMedicines = 0;
+  int _totalPrescriptions = 0;
 
   @override
   void initState() {
@@ -35,134 +45,181 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadData() async {
     try {
-      final list = await _db.getMedicines();
-      Map<String, String> labels = {};
+      final List<dynamic> prescriptions = await ApiService().getPrescriptions();
+      List<Medicine> parsedMedicines = [];
       
-      for (var med in list) {
-        await _notifications.scheduleMedicineReminders(med); // Reschedule alarms for loaded data
-        
-        if (med.timings.isNotEmpty) {
-           List<String> timeStrings = [];
-           for (var t in med.timings) {
-             final time = await _prefs.calculateExactTime(t);
-             final timeStr = DateFormat('h:mm a').format(time);
-             
-             // Time label like "After Meal"
-             final typeName = t.timeType.name.replaceAll(RegExp(r'(?=[A-Z])'), ' ');
-             // Meal label like "LUNCH"
-             final mealName = t.mealRef.name.toUpperCase();
-             
-             timeStrings.add('$timeStr ($typeName $mealName)');
-           }
-           labels[med.id] = timeStrings.join(', ');
+      for (var p in prescriptions) {
+        if (p['fullMedicines'] != null) {
+          for (var m in p['fullMedicines']) {
+            final freqStr = m['frequency']?.toString().toLowerCase() ?? '';
+            int freq = 1;
+            if (freqStr.contains('twice') || freqStr.contains('bid') || freqStr.contains('2')) freq = 2;
+            if (freqStr.contains('thrice') || freqStr.contains('tid') || freqStr.contains('3')) freq = 3;
+            
+            parsedMedicines.add(Medicine(
+              id: m['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              name: m['name'] ?? 'Unknown Medicine',
+              dosage: m['dosage'] ?? '',
+              frequency: freq,
+              timings: [], // Real prescriptions don't have local timings yet, would need a UI to let patient set them
+              startDate: DateTime.now(),
+            ));
+          }
         }
       }
+      
+      // We will skip scheduling local notifications for now since backend doesn't have timings
+      Map<String, String> labels = {};
 
-      setState(() {
-        _medicines = list;
-        _timeLabels = labels;
-        _loading = false;
-        _error = null;
-      });
+      if (mounted) {
+        setState(() {
+          _medicines = parsedMedicines;
+          _timeLabels = labels;
+          _loading = false;
+          _error = null;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
+    }
+    await _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('patient_jwt_token') ?? '';
+      
+      final response = await http.get(
+        Uri.parse('http://localhost:5000/api/v1/patient/dashboard-stats'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _activeMedicines = data['activeMedicines'] ?? 0;
+            _totalPrescriptions = data['totalPrescriptions'] ?? 0;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch stats: $e');
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Find next medicine (logic simplified for demo: just pick first for now or random)
-    // In real app, calculate closest time based on meal times.
+  void _onItemSelected(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (index == 0) _loadData();
+  }
+
+  Widget _buildContent() {
+    switch (_selectedIndex) {
+      case 0:
+        return _buildDashboardOverview();
+      case 1:
+        return const PrescriptionsScreen();
+      case 2:
+        return const HistoryScreen();
+      case 3:
+        return const SettingsScreen();
+      default:
+        return const Center(child: Text("Coming Soon"));
+    }
+  }
+
+  Widget _buildDashboardOverview() {
     Medicine? nextMedicine;
     if (_medicines.isNotEmpty) {
       nextMedicine = _medicines.first; 
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('MedEcos Patient'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryScreen()));
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-              _loadData(); // Reload in case meal times changed affecting schedule (visual only here)
-            },
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)))
-              : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildGreeting(),
-                    const SizedBox(height: 16),
-                    _buildFindDoctorsCard(context),
-                    const SizedBox(height: 16),
-                    if (nextMedicine != null) _buildCurrentMedicineCard(nextMedicine),
-                    if (nextMedicine == null) 
-                      const Card(child: Padding(padding: EdgeInsets.all(16), child: Text("No medicines scheduled"))),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Your Medicines',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                             await Navigator.push(context, MaterialPageRoute(builder: (_) => const MedicineListScreen()));
-                             _loadData();
-                          },
-                          child: const Text('See All'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ..._medicines.map((m) => Card(
-                      child: ListTile(
-                        leading: CircleAvatar(child: Text(m.name[0])),
-                        title: Text(m.name),
-                        subtitle: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                             Text('${m.dosage} • ${m.frequency}x daily'),
-                             if (_timeLabels.containsKey(m.id))
-                               Text(_timeLabels[m.id]!, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)),
-                           ],
-                        ),
+    final Widget homeContent = _loading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+            ? Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)))
+            : SingleChildScrollView(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Dashboard",
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
-                    )).toList(),
+                ),
+                const SizedBox(height: 24),
+                // Stats Grid
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 24,
+                  children: [
+                    StatCard(title: "Medicines", value: _medicines.length.toString(), icon: Icons.medical_services, color: Colors.blue),
+                    StatCard(title: "Next Dose", value: nextMedicine?.name ?? "None", icon: Icons.access_time, color: Colors.orange),
+                    StatCard(title: "Active Meds", value: _activeMedicines.toString(), icon: Icons.healing, color: Colors.teal),
+                    StatCard(title: "Prescriptions", value: _totalPrescriptions.toString(), icon: Icons.receipt_long, color: Colors.green),
                   ],
                 ),
-              ),
+                const SizedBox(height: 32),
+                _buildFindDoctorsCard(context),
+                const SizedBox(height: 32),
+                if (nextMedicine != null) _buildCurrentMedicineCard(nextMedicine),
+                if (nextMedicine == null) 
+                  const Card(child: Padding(padding: EdgeInsets.all(16), child: Text("No medicines scheduled"))),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Your Medicines',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                         await Navigator.push(context, MaterialPageRoute(builder: (_) => const MedicineListScreen()));
+                         _loadData();
+                      },
+                      child: const Text('See All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ..._medicines.map((m) => Card(
+                  child: ListTile(
+                    leading: CircleAvatar(child: Text(m.name[0])),
+                    title: Text(m.name),
+                    subtitle: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text('${m.dosage} • ${m.frequency}x daily'),
+                         if (_timeLabels.containsKey(m.id))
+                           Text(_timeLabels[m.id]!, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)),
+                       ],
+                    ),
+                  ),
+                )).toList(),
+              ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await showDialog(
-            context: context,
-            builder: (context) => const AddMedicineDialog(),
           );
-          _loadData();
-        },
-        child: const Icon(Icons.add),
-      ),
+
+    return Column(
+      children: [
+        const Header(),
+        Expanded(child: homeContent),
+      ],
     );
   }
 
@@ -236,28 +293,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildGreeting() {
-    final hour = DateTime.now().hour;
-    String greeting = "Good Morning";
-    if (hour >= 12 && hour < 17) {
-      greeting = "Good Afternoon";
-    } else if (hour >= 17) {
-      greeting = "Good Evening";
-    }
-
-    return Text(
-      "$greeting, Patient",
-      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-    );
-  }
-
   Widget _buildCurrentMedicineCard(Medicine medicine) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.lightBlue.shade50, // Light blue bg
-        border: Border.all(color: Colors.blue.shade900, width: 2), // Dark blue border
+        color: Colors.lightBlue.shade50,
+        border: Border.all(color: Colors.blue.shade900, width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -285,13 +327,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
             
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: () {
-               // Log as taken
-               _db.logMetadata(medicine.id, medicine.name, DateTime.now(), 'TAKEN');
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked as taken')));
+            onPressed: () async {
+               try {
+                 await ApiService().logMedicineHistory(medicine.id, medicine.name, DateTime.now(), 'TAKEN');
+                 if (mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked as taken')));
+                 }
+               } catch (e) {
+                 if (mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to mark as taken: $e')));
+                 }
+               }
             },
             child: const Text("Mark as Taken"),
           )
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Row(
+        children: [
+          SizedBox(
+            width: 250, 
+            child: Sidebar(
+              selectedIndex: _selectedIndex,
+              onItemSelected: _onItemSelected,
+            ),
+          ),
+          Expanded(
+            child: _buildContent(),
+          ),
         ],
       ),
     );

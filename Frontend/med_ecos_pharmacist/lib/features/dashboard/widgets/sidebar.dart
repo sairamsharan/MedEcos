@@ -33,19 +33,19 @@ class Sidebar extends StatelessWidget {
             onTap: () => onItemSelected(0),
           ),
           _NavItem(
-            icon: Icons.assignment,
+            icon: Icons.receipt,
             label: "Prescriptions", 
             isSelected: selectedIndex == 1,
             onTap: () => onItemSelected(1),
           ),
           _NavItem(
-            icon: Icons.people, 
-            label: "Patients", 
+            icon: Icons.search, 
+            label: "Lookup", 
             isSelected: selectedIndex == 2,
             onTap: () => onItemSelected(2),
           ),
           _NavItem(
-            icon: Icons.inventory_2, 
+            icon: Icons.inventory, 
             label: "Inventory",
             isSelected: selectedIndex == 3,
             onTap: () => onItemSelected(3),

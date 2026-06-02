@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../core/models/medicine_model.dart';
-import '../../../core/services/database_service.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/services/preferences_service.dart';
-import '../widgets/add_medicine_dialog.dart';
 
 class MedicineListScreen extends StatefulWidget {
   const MedicineListScreen({super.key});
@@ -12,7 +12,6 @@ class MedicineListScreen extends StatefulWidget {
 }
 
 class _MedicineListScreenState extends State<MedicineListScreen> {
-  final DatabaseService _db = DatabaseService();
   final PreferencesService _prefs = PreferencesService();
   List<Medicine> _medicines = [];
   Map<String, String> _timeLabels = {};
@@ -27,27 +26,32 @@ class _MedicineListScreenState extends State<MedicineListScreen> {
 
   Future<void> _loadMedicines() async {
     try {
-      final list = await _db.getMedicines();
-      Map<String, String> labels = {};
+      final List<dynamic> prescriptions = await ApiService().getPrescriptions();
+      List<Medicine> parsedMedicines = [];
       
-      for (var med in list) {
-        if (med.timings.isNotEmpty) {
-           List<String> timeStrings = [];
-           for (var t in med.timings) {
-             final time = await _prefs.calculateExactTime(t);
-             final timeStr = DateFormat('h:mm a').format(time);
-             final typeName = t.timeType.name.replaceAll(RegExp(r'(?=[A-Z])'), ' ');
-             final mealName = t.mealRef.name.toUpperCase();
-             
-             timeStrings.add('$timeStr ($typeName $mealName)');
-           }
-           labels[med.id] = timeStrings.join(', ');
+      for (var p in prescriptions) {
+        if (p['fullMedicines'] != null) {
+          for (var m in p['fullMedicines']) {
+            final freqStr = m['frequency']?.toString().toLowerCase() ?? '';
+            int freq = 1;
+            if (freqStr.contains('twice') || freqStr.contains('bid') || freqStr.contains('2')) freq = 2;
+            if (freqStr.contains('thrice') || freqStr.contains('tid') || freqStr.contains('3')) freq = 3;
+            
+            parsedMedicines.add(Medicine(
+              id: m['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              name: m['name'] ?? 'Unknown Medicine',
+              dosage: m['dosage'] ?? '',
+              frequency: freq,
+              timings: [], 
+              startDate: DateTime.now(),
+            ));
+          }
         }
       }
 
       setState(() {
-        _medicines = list;
-        _timeLabels = labels;
+        _medicines = parsedMedicines;
+        // _timeLabels = labels; (No timings from backend yet)
         _loading = false;
         _error = null;
       });
@@ -57,14 +61,6 @@ class _MedicineListScreenState extends State<MedicineListScreen> {
         _loading = false;
       });
     }
-  }
-
-  void _addMedicine() async {
-    await showDialog(
-      context: context,
-      builder: (context) => const AddMedicineDialog(),
-    );
-    _loadMedicines();
   }
 
   @override
@@ -89,21 +85,9 @@ class _MedicineListScreenState extends State<MedicineListScreen> {
                          Text(_timeLabels[med.id]!, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)),
                      ],
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      await _db.deleteMedicine(med.id);
-                      await NotificationService().cancelMedicineNotifications(med.id);
-                      _loadMedicines();
-                    },
-                  ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addMedicine,
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

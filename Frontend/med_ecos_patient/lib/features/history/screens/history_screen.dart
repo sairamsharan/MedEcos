@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../core/services/database_service.dart';
+import '../../../core/services/api_service.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -10,8 +10,7 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final DatabaseService _db = DatabaseService();
-  List<Map<String, dynamic>> _history = [];
+  List<dynamic> _history = [];
   bool _loading = true;
   String? _error;
 
@@ -23,7 +22,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _loadHistory() async {
     try {
-      final list = await _db.getHistory();
+      final list = await ApiService().getMedicineHistory();
       setState(() {
         _history = list;
         _loading = false;

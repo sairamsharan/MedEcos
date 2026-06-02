@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedEcos - Role Selection</title>
+    <style>
+        :root {
+            --primary: #0f766e;
+            --primary-hover: #115e59;
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(148, 163, 184, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(15, 118, 110, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 50%);
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 1000px;
+            width: 90%;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #2dd4bf, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 3rem;
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .role-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+            background: rgba(30, 41, 59, 0.9);
+            border-color: var(--primary);
+            box-shadow: 0 10px 25px -5px rgba(15, 118, 110, 0.3);
+        }
+
+        .role-icon {
+            font-size: 3rem;
+        }
+
+        .role-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .role-desc {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to MedEcos</h1>
+        <p>Select your portal to continue</p>
+        
+        <div class="roles-grid">
+            <a href="/doctor" class="role-card">
+                <div class="role-icon">🩺</div>
+                <div class="role-title">Doctor Portal</div>
+                <div class="role-desc">Manage patients, write prescriptions, and view medical history.</div>
+            </a>
+            
+            <a href="/patient" class="role-card">
+                <div class="role-icon">👤</div>
+                <div class="role-title">Patient Portal</div>
+                <div class="role-desc">Access your medical history, prescriptions, and ABHA profile.</div>
+            </a>
+            
+            <a href="/pharmacist" class="role-card">
+                <div class="role-icon">💊</div>
+                <div class="role-title">Pharmacist Portal</div>
+                <div class="role-desc">Verify prescriptions and manage dispensary logs safely.</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

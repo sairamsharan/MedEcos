@@ -18,7 +18,7 @@ class Header extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 400),
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: "Search prescriptions, inventory...",
+                  hintText: "Search patients, appointments...",
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: AppColors.background,
@@ -49,13 +49,13 @@ class Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Pharm. Sairam",
+                "Pharmacist User",
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
               ),
               Text(
-                "Pharmacist",
+                "Pharmacy Store",
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),

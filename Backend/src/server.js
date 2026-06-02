@@ -17,10 +17,9 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('MongoDB Connected'))
     .catch(err => console.log(err));
 
-// Routes (Placeholder)
-app.get('/', (req, res) => {
-    res.send('API is running...');
-});
+// Serve static files from Frontend/public
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../../Frontend/public')));
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -32,6 +31,9 @@ const patientRoutes = require('./routes/patientRoutes');
 
 app.use('/api/v1/doctor', doctorRoutes);
 app.use('/api/v1/patient', patientRoutes);
+
+const pharmacistRoutes = require('./routes/pharmacistRoutes');
+app.use('/api/v1/pharmacist', pharmacistRoutes);
 
 // ABDM Webhook Routes
 const abdmRoutes = require('./routes/abdmRoutes');

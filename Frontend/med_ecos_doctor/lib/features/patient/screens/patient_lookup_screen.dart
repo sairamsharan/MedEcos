@@ -15,6 +15,15 @@ class PatientLookupScreen extends StatefulWidget {
 class _PatientLookupScreenState extends State<PatientLookupScreen> {
   final TextEditingController _searchController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    // Load patients from backend on screen start
+    DataService().loadData().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   void _navigateToDetails(String patientId) {
     Navigator.push(
       context,
@@ -31,6 +40,8 @@ class _PatientLookupScreenState extends State<PatientLookupScreen> {
     );
     
     if (result != null) {
+      // UI already updated via DataService.addPatient; trigger rebuild
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Patient ${result.name} registered successfully!")),
       );

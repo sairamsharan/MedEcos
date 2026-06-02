@@ -66,4 +66,32 @@ router.get('/verify-prescription/:id', async (req, res) => {
     }
 });
 
+// Get all prescriptions for a patient by ABHA ID (Public/Pharmacist/Lab view)
+router.get('/prescriptions/patient/:abhaId', async (req, res) => {
+    try {
+        const prescriptions = await Prescription.find({ abhaId: req.params.abhaId }).sort({ date: -1 });
+        res.json(prescriptions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get a single prescription by ID
+router.get('/prescriptions/:id', async (req, res) => {
+    try {
+        const prescription = await Prescription.findById(req.params.id);
+        if (!prescription) {
+            return res.status(404).json({ message: 'Prescription not found' });
+        }
+        res.json(prescription);
+    } catch (error) {
+        console.error(error);
+        if (error.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Invalid/not found Prescription ID format' });
+        }
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

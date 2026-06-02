@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import 'widgets/sidebar.dart';
 import 'widgets/header.dart';
@@ -16,6 +19,49 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  bool _isLoading = true;
+  
+  int _prescriptionsToday = 0;
+  int _pendingOrders = 0;
+  int _totalCustomers = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('pharmacist_jwt_token') ?? '';
+      
+      final response = await http.get(
+        Uri.parse('http://localhost:5000/api/v1/pharmacist/dashboard-stats'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _prescriptionsToday = data['prescriptionsToday'] ?? 0;
+            _pendingOrders = data['pendingOrders'] ?? 0;
+            _totalCustomers = data['totalCustomers'] ?? 0;
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch stats: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   void _onItemSelected(int index) {
     setState(() {
@@ -65,9 +111,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       spacing: 24,
                       runSpacing: 24,
                       children: [
-                        StatCard(title: "Prescriptions Today", value: "34", icon: Icons.receipt_long, color: Colors.blue),
-                        StatCard(title: "Pending Orders", value: "5", icon: Icons.shopping_basket, color: Colors.orange),
-                        StatCard(title: "Total Customers", value: "1,240", icon: Icons.people, color: Colors.teal),
+                        StatCard(title: "Prescriptions Today", value: _prescriptionsToday.toString(), icon: Icons.receipt_long, color: Colors.blue),
+                        StatCard(title: "Pending Orders", value: _pendingOrders.toString(), icon: Icons.shopping_basket, color: Colors.orange),
+                        StatCard(title: "Total Customers", value: _totalCustomers.toString(), icon: Icons.people, color: Colors.teal),
                         StatCard(title: "Weekly Engagement", value: "+12%", icon: Icons.trending_up, color: Colors.green),
                       ],
                     );
@@ -94,6 +140,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Row(

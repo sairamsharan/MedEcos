@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/models/patient_model.dart';
 import '../../../../core/services/data_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/abha_formatter.dart';
 
 class AddPatientDialog extends StatefulWidget {
   const AddPatientDialog({super.key});
@@ -11,99 +15,181 @@ class AddPatientDialog extends StatefulWidget {
 }
 
 class _AddPatientDialogState extends State<AddPatientDialog> {
-  static final RegExp _phoneStripPattern = RegExp(r'[\s\-\+\(\)]');
-  static final RegExp _phoneDigitsPattern = RegExp(r'^\d{7,15}$');
+  final _abhaController = TextEditingController();
+  final _otpController = TextEditingController();
+  
+  bool _isLoading = false;
+  String? _transactionId;
+  String? _errorMessage;
 
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _contactController = TextEditingController();
-  String _gender = 'Male';
+  Future<void> _generateOtp() async {
+    if (_abhaController.text.isEmpty) return;
+    
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-  void _savePatient() {
-    if (_formKey.currentState!.validate()) {
-      final id = "PAT-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}";
-      final patient = Patient(
-        id: id,
-        name: _nameController.text.trim(),
-        age: int.parse(_ageController.text.trim()),
-        gender: _gender,
-        contact: _contactController.text.trim(),
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/auth/abha/generate-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'abhaId': _abhaController.text}),
       );
 
-      DataService().addPatient(patient);
-      Navigator.pop(context, patient);
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _transactionId = data['transactionId'];
+        });
+      } else {
+        setState(() {
+          _errorMessage = data['message'] ?? 'Failed to send OTP';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Network error: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _verifyOtpAndRegister() async {
+    if (_otpController.text.isEmpty || _transactionId == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('doctor_jwt_token') ?? '';
+
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/v1/doctor/patients/abha-register'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'transactionId': _transactionId,
+          'otp': _otpController.text,
+          'abhaId': _abhaController.text,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        // Patient created and returned from backend
+        final patient = Patient(
+          id: data['abhaId'] ?? data['_id'],
+          name: data['username'] ?? 'Unknown Patient',
+          age: data['age'] ?? 0,
+          gender: data['gender'] ?? 'Unknown',
+          contact: data['mobileNumber'] ?? 'N/A',
+        );
+        
+        DataService().addPatient(patient);
+        if (mounted) {
+          Navigator.pop(context, patient);
+        }
+      } else {
+        setState(() {
+          _errorMessage = data['message'] ?? 'Verification failed';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Network error: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Register New Patient"),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: "Full Name"),
-                validator: (v) => v!.isEmpty ? "Required" : null,
+      title: const Text("Register Patient via ABHA"),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_transactionId == null) ...[
+              TextField(
+                controller: _abhaController,
+                inputFormatters: [AbhaInputFormatter()],
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'ABHA ID (e.g. 1111-2222-3333-4444)',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _ageController,
-                      decoration: const InputDecoration(labelText: "Age"),
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return "Required";
-                        final age = int.tryParse(v.trim());
-                        if (age == null) return "Enter a valid number";
-                        if (age < 0 || age > 150) return "Enter a valid age (0–150)";
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _gender,
-                      items: ['Male', 'Female', 'Other'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (v) => setState(() => _gender = v!),
-                      decoration: const InputDecoration(labelText: "Gender"),
-                    ),
-                  ),
-                ],
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _generateOtp,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                child: _isLoading 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("Send OTP"),
+              ),
+            ] else ...[
+              Text(
+                'OTP sent to mobile linked with ABHA ID: ${_abhaController.text}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _contactController,
-                decoration: const InputDecoration(labelText: "Contact Number"),
-                keyboardType: TextInputType.phone,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return "Required";
-                  final digits = v.trim().replaceAll(_phoneStripPattern, '');
-                  if (!_phoneDigitsPattern.hasMatch(digits)) {
-                    return "Enter a valid phone number (7–15 digits)";
-                  }
-                  return null;
+              TextField(
+                controller: _otpController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter OTP (Try 123456)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _verifyOtpAndRegister,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                child: _isLoading 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("Verify & Register"),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _transactionId = null;
+                    _otpController.clear();
+                    _errorMessage = null;
+                  });
                 },
-              ),
+                child: const Text("Use different ABHA ID"),
+              )
             ],
-          ),
+          ],
         ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-        ElevatedButton(
-          onPressed: _savePatient, 
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-          child: const Text("Register"),
-        ),
       ],
     );
   }
