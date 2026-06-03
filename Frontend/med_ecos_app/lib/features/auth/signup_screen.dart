@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../../../core/utils/abha_formatter.dart';
 
@@ -17,11 +18,40 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _abhaController = TextEditingController();
+  final _specialityController = TextEditingController();
+  final _latController = TextEditingController();
+  final _lngController = TextEditingController();
   String _selectedRole = 'Patient';
   bool _isLoading = false;
+  bool _isLocating = false;
   String? _errorMessage;
 
   Future<void> _signup() async {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_emailController.text)) {
+      setState(() {
+        _errorMessage = 'Invalid email format';
+      });
+      return;
+    }
+
+    if (_selectedRole == 'Doctor') {
+      if (_latController.text.isEmpty || _lngController.text.isEmpty) {
+        setState(() {
+          _errorMessage = 'Location is mandatory for Doctors. Please enter or detect your location.';
+        });
+        return;
+      }
+      final lat = double.tryParse(_latController.text);
+      final lng = double.tryParse(_lngController.text);
+      if (lat == null || lng == null) {
+        setState(() {
+          _errorMessage = 'Invalid latitude or longitude values.';
+        });
+        return;
+      }
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -37,6 +67,12 @@ class _SignupScreenState extends State<SignupScreen> {
           'password': _passwordController.text,
           'abhaId': _selectedRole == 'Patient' ? _abhaController.text : '',
           'role': _selectedRole,
+          if (_selectedRole == 'Doctor') 'speciality': _specialityController.text,
+          if (_selectedRole == 'Doctor' && _latController.text.isNotEmpty && _lngController.text.isNotEmpty)
+            'location': {
+              'lat': double.tryParse(_latController.text) ?? 0,
+              'lng': double.tryParse(_lngController.text) ?? 0,
+            },
         }),
       );
 
@@ -47,6 +83,7 @@ class _SignupScreenState extends State<SignupScreen> {
         await prefs.setString('jwt_token', data['token']);
         await prefs.setString('user_id', data['_id']);
         await prefs.setString('user_role', data['role']);
+        await prefs.setString('username', data['username'] ?? 'User');
         
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -69,6 +106,39 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
+  Future<void> _detectLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _errorMessage = 'Location services are disabled.');
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _errorMessage = 'Location permission denied.');
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => _errorMessage = 'Location permissions are permanently denied.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      setState(() {
+        _latController.text = pos.latitude.toStringAsFixed(6);
+        _lngController.text = pos.longitude.toStringAsFixed(6);
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() => _errorMessage = 'Could not detect location: $e');
+    } finally {
+      setState(() => _isLocating = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,6 +148,7 @@ class _SignupScreenState extends State<SignupScreen> {
           constraints: const BoxConstraints(maxWidth: 400),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
+            child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -128,6 +199,50 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
+                if (_selectedRole == 'Doctor') ...[
+                  TextField(
+                    controller: _specialityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Type of Doctor (e.g. Cardiologist)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _latController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Latitude *',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _lngController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Longitude *',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _isLocating ? null : _detectLocation,
+                    icon: _isLocating
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.my_location),
+                    label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
@@ -163,6 +278,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: const Text('Already have an account? Login'),
                 ),
               ],
+            ),
             ),
           ),
         ),

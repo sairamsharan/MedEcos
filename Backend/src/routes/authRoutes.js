@@ -11,7 +11,7 @@ const { protect } = require('../middleware/authMiddleware');
 // Register
 router.post('/register', async (req, res) => {
     try {
-        const { username, email, password, role, abhaId } = req.body;
+        const { username, email, password, role, abhaId, location, speciality } = req.body;
 
         // Simple validation
         if (!username || !email || !password || !role) {
@@ -22,6 +22,13 @@ router.post('/register', async (req, res) => {
         const validRoles = ['Doctor', 'Patient', 'Pharmacist', 'Pathologist'];
         if (!validRoles.includes(role)) {
             return res.status(400).json({ message: 'Invalid role' });
+        }
+
+        // Validate location for Doctor role
+        if (role === 'Doctor') {
+            if (!location || !location.lat || !location.lng) {
+                return res.status(400).json({ message: 'Location (lat/lng) is mandatory for Doctors' });
+            }
         }
 
         // Check for existing user
@@ -70,7 +77,9 @@ router.post('/register', async (req, res) => {
             role,
             abhaId: role === 'Patient' ? abhaId : undefined,
             publicKey, // Will be undefined if not Doctor
-            privateKey // Will be undefined if not Doctor
+            privateKey, // Will be undefined if not Doctor
+            location: role === 'Doctor' ? location : undefined,
+            speciality: role === 'Doctor' ? speciality : undefined,
         });
 
         if (user) {

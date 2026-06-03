@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/login_screen.dart';
 
@@ -19,6 +20,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _specialityController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _feeController = TextEditingController();
+  final TextEditingController _latController = TextEditingController();
+  final TextEditingController _lngController = TextEditingController();
+  bool _isLocating = false;
 
   @override
   void initState() {
@@ -41,6 +45,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _specialityController.text = _profile?['speciality'] ?? '';
             _addressController.text = _profile?['address'] ?? '';
             _feeController.text = (_profile?['consultationFee'] ?? 0).toString();
+            _latController.text = (_profile?['location']?['lat'] ?? '').toString();
+            _lngController.text = (_profile?['location']?['lng'] ?? '').toString();
+            if (_latController.text == '0' || _latController.text == 'null') _latController.text = '';
+            if (_lngController.text == '0' || _lngController.text == 'null') _lngController.text = '';
             _loading = false;
           });
         }
@@ -59,20 +67,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       int? fee = int.tryParse(_feeController.text);
       
+      final body = <String, dynamic>{
+        'speciality': _specialityController.text,
+        'address': _addressController.text,
+        'consultationFee': fee,
+      };
+      
+      final lat = double.tryParse(_latController.text);
+      final lng = double.tryParse(_lngController.text);
+      if (lat != null && lng != null) {
+        body['location'] = {'lat': lat, 'lng': lng};
+      }
+
       final res = await http.put(
         Uri.parse('http://localhost:5000/api/auth/profile'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'speciality': _specialityController.text,
-          'address': _addressController.text,
-          'consultationFee': fee,
-        }),
+        body: jsonEncode(body),
       );
       if (res.statusCode == 200) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _detectLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location services are disabled.')));
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permission denied.')));
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are permanently denied.')));
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      setState(() {
+        _latController.text = pos.latitude.toStringAsFixed(6);
+        _lngController.text = pos.longitude.toStringAsFixed(6);
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not detect location: $e')));
+    } finally {
+      setState(() => _isLocating = false);
     }
   }
 
@@ -114,6 +162,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
               controller: _feeController,
               decoration: const InputDecoration(labelText: 'Consultation Fee', border: OutlineInputBorder()),
               keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _latController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Latitude',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _lngController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Longitude',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _isLocating ? null : _detectLocation,
+              icon: _isLocating
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.my_location),
+              label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(

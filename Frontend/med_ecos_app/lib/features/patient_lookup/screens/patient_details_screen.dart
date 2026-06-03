@@ -107,17 +107,20 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             // Actions
             Row(
               children: [
+              if (_userRole == 'Doctor') ...[
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      if (_userRole == 'Pharmacist') {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => pharmacist.PrescriptionFormScreen(patientId: widget.patientId, patientName: _patient!.name)));
-                      } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => doctor.PrescriptionFormScreen(patientId: widget.patientId, patientName: _patient!.name)));
+                    onPressed: () async {
+                      final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => doctor.PrescriptionFormScreen(
+                        patientId: widget.patientId,
+                        patientName: _patient!.name,
+                      )));
+                      if (result == true) {
+                        _loadData();
                       }
                     },
                     icon: const Icon(Icons.edit_note),
-                    label: const Text("Write / Fulfill Prescription"),
+                    label: const Text("Write Prescription"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
                       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -125,6 +128,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   ),
                 ),
               ],
+            ],
             ),
 
             const SizedBox(height: 32),
@@ -139,7 +143,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                 final p = _prescriptions[index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
+                  child: ExpansionTile(
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(color: AppColors.surfaceVariant, borderRadius: BorderRadius.circular(8)),
@@ -147,7 +151,27 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     ),
                     title: Text(p.diagnosis, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text("${p.doctorName} • ${DateFormat.yMMMd().format(p.date)}"),
-                    trailing: const Icon(Icons.chevron_right),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (p.medicines.isNotEmpty) ...[
+                              const Text("Medicines:", style: TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              ...p.medicines.map((m) => Text("• ${m['name']} (${m['dosage'] ?? ''}) - ${m['duration'] ?? ''}")),
+                              const SizedBox(height: 12),
+                            ],
+                            if (p.labTests.isNotEmpty) ...[
+                              const Text("Lab Tests:", style: TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              ...p.labTests.map((t) => Text("• $t")),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },

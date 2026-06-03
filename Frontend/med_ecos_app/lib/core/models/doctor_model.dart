@@ -6,7 +6,7 @@ class Doctor {
   final String imageInitials;
   final double rating;
   final int reviewCount;
-  final double distanceKm;
+  double distanceKm;
   final double lat;
   final double lng;
   final bool isAvailable;
@@ -14,7 +14,7 @@ class Doctor {
   final int experienceYears;
   final int consultationFee;
 
-  const Doctor({
+  Doctor({
     required this.id,
     required this.name,
     required this.specialization,

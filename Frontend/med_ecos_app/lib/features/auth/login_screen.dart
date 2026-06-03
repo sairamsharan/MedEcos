@@ -109,6 +109,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginWithEmail() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_emailController.text)) {
+      setState(() {
+        _errorMessage = 'Invalid email format';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -131,6 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('jwt_token', data['token']);
         await prefs.setString('user_id', data['_id']);
         await prefs.setString('user_role', data['role']);
+        await prefs.setString('username', data['username'] ?? 'User');
         
         if (mounted) {
           Navigator.of(context).pushReplacement(

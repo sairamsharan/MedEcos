@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/doctor_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../appointments/widgets/book_appointment_dialog.dart';
 
 class DoctorBottomSheet extends StatelessWidget {
   final Doctor doctor;
@@ -181,14 +182,11 @@ class DoctorBottomSheet extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Booking with ${doctor.name}...'),
-                        backgroundColor: AppColors.primary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    await showDialog(
+                      context: context,
+                      builder: (_) => BookAppointmentDialog(initialDoctorId: doctor.id),
                     );
                   },
                   icon: const Icon(Icons.calendar_today_rounded, size: 18),

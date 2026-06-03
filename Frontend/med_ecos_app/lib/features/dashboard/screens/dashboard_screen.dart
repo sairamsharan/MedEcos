@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/medicine_model.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/utils/medicine_utils.dart';
+import '../../../core/services/notification_service.dart';
 
 // Common Widgets
 import '../widgets/sidebar.dart';
@@ -46,6 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Patient Stats
   List<Medicine> _medicines = [];
+  List<String> _labTests = [];
   int _activeMedicines = 0;
   int _totalPrescriptions = 0;
 
@@ -84,17 +87,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final List<dynamic> prescriptions = await ApiService().getPrescriptions();
       List<Medicine> parsedMedicines = [];
+      List<String> parsedLabTests = [];
+      List<Medicine> activeMeds = [];
       for (var p in prescriptions) {
-        if (p['fullMedicines'] != null) {
-          for (var m in p['fullMedicines']) {
-            parsedMedicines.add(Medicine(
-              id: m['_id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-              name: m['name'] ?? 'Unknown',
-              dosage: m['dosage'] ?? '',
-              frequency: 1,
-              timings: [],
-              startDate: DateTime.now(),
-            ));
+        final prescribeDate = DateTime.parse(p['date']);
+        if (p['medicines'] != null) {
+          for (var m in p['medicines']) {
+            if (m is Map) {
+              final durationStr = m['duration']?.toString() ?? 'Ongoing';
+              final med = Medicine(
+                id: m['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                name: m['name']?.toString() ?? 'Unknown',
+                dosage: m['dosage']?.toString() ?? m['timing']?.toString() ?? '',
+                frequency: 1,
+                timings: [],
+                startDate: prescribeDate,
+                endDate: MedicineUtils.parseEndDate(prescribeDate, durationStr)
+              );
+              parsedMedicines.add(med);
+              
+              if (MedicineUtils.isActiveMedicine(prescribeDate, durationStr)) {
+                activeMeds.add(med);
+              }
+            }
+          }
+        }
+        if (p['labTests'] != null) {
+          for (var t in p['labTests']) {
+            parsedLabTests.add(t.toString());
           }
         }
       }
@@ -102,9 +122,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         setState(() {
           _medicines = parsedMedicines;
-          _activeMedicines = stats['activeMedicines'] ?? 0;
-          _totalPrescriptions = stats['totalPrescriptions'] ?? 0;
+          _labTests = parsedLabTests;
+          _activeMedicines = activeMeds.length;
+          _totalPrescriptions = prescriptions.length;
         });
+        
+        // Schedule notifications for active medicines
+        final notificationService = NotificationService();
+        for (var med in activeMeds) {
+          notificationService.scheduleMedicineReminders(med);
+        }
       }
     } catch (e) {
       debugPrint('Error: $e');
@@ -186,12 +213,130 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 32),
-                ActiveMedicinesList(medicines: _medicines),
+                _buildFindDoctorsCard(),
+                const SizedBox(height: 32),
+                ActiveMedicinesList(medicines: _medicines.where((med) => 
+                  med.endDate == null || med.endDate!.isAfter(DateTime.now().subtract(const Duration(days: 1)))
+                ).toList()),
+                const SizedBox(height: 32),
+                _buildPreviousMedicinesAndLabTests(),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPreviousMedicinesAndLabTests() {
+    final previousMedicines = _medicines.where((med) => 
+      med.endDate != null && med.endDate!.isBefore(DateTime.now().subtract(const Duration(days: 1)))
+    ).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Previous Medicines & Lab Tests", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        if (previousMedicines.isEmpty && _labTests.isEmpty)
+          const Text("No previous history found.")
+        else ...[
+          if (previousMedicines.isNotEmpty) ...[
+            const Text("Medicines", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            ...previousMedicines.map((m) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const CircleAvatar(backgroundColor: Colors.grey, child: Icon(Icons.medication, color: Colors.white)),
+                title: Text(m.name),
+                subtitle: Text("Dosage: ${m.dosage}"),
+              ),
+            )),
+            const SizedBox(height: 16),
+          ],
+          if (_labTests.isNotEmpty) ...[
+            const Text("Lab Tests", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            ..._labTests.toSet().map((t) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.science, color: Colors.white)),
+                title: Text(t),
+              ),
+            )),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFindDoctorsCard() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DoctorsMapScreen()),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.map_rounded, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Find Nearby Doctors',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Verified doctors near you on map',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_forward_ios_rounded,
+                  color: Colors.white, size: 16),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

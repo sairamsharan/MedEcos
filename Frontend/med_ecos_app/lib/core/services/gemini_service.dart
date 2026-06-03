@@ -84,7 +84,14 @@ class GeminiService {
   }
 
   static Future<String?> _callGemini(List<String> currentMedicines, String newMedicine) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
+    String? apiKey;
+    try {
+      apiKey = dotenv.env['GEMINI_API_KEY'];
+    } catch (e) {
+      // dotenv not initialized or file missing
+      apiKey = null;
+    }
+    
     if (apiKey == null || apiKey.isEmpty) {
       return null; // No key, skip silently
     }

@@ -5,7 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 
 class BookAppointmentDialog extends StatefulWidget {
-  const BookAppointmentDialog({super.key});
+  final String? initialDoctorId;
+  const BookAppointmentDialog({super.key, this.initialDoctorId});
 
   @override
   State<BookAppointmentDialog> createState() => _BookAppointmentDialogState();
@@ -32,7 +33,9 @@ class _BookAppointmentDialogState extends State<BookAppointmentDialog> {
         if (mounted) {
           setState(() {
             _doctors = jsonDecode(res.body);
-            if (_doctors.isNotEmpty) {
+            if (widget.initialDoctorId != null && _doctors.any((d) => d['_id'] == widget.initialDoctorId)) {
+              _selectedDoctorId = widget.initialDoctorId;
+            } else if (_doctors.isNotEmpty) {
               _selectedDoctorId = _doctors[0]['_id'];
             }
             _loading = false;

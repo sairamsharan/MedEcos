@@ -125,7 +125,7 @@ class ApiService {
       'doctorName': p.doctorName,
       'date': p.date.toIso8601String(),
       'diagnosis': p.diagnosis,
-      'medicines': p.medicines.map((m) => m['name']).toList(),
+      'medicines': p.medicines,
     }).toList();
   }
 
@@ -289,6 +289,22 @@ class ApiService {
     final response = await http.put(Uri.parse(route), headers: headers, body: jsonEncode(body));
     if (response.statusCode != 200) {
       throw Exception("Failed to update prescription notes");
+    }
+  }
+
+  Future<void> finishAppointment(String appointmentId) async {
+    try {
+      final headers = await _getHeaders();
+      final baseUrl = await _baseUrl;
+      final response = await http.post(
+        Uri.parse('$baseUrl/appointments/$appointmentId/finish'),
+        headers: headers,
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to finish appointment: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
     }
   }
 }

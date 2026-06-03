@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../prescription/services/pdf_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PrescriptionsScreen extends StatefulWidget {
   const PrescriptionsScreen({super.key});
@@ -110,6 +112,27 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                       ),
                       const SizedBox(height: 8),
                       ...(p['medicines'] as List<dynamic>).map((m) {
+                        if (m is Map) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.medication, size: 16, color: Colors.blueGrey),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(m['name']?.toString() ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      Text("${m['dosage'] ?? m['timing'] ?? ''} • ${m['frequency'] ?? m['context'] ?? ''} • ${m['duration'] ?? ''}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 4.0),
                           child: Row(
@@ -121,6 +144,48 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                           ),
                         );
                       }).toList(),
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            try {
+                              final prefs = await SharedPreferences.getInstance();
+                              final patientName = prefs.getString('username') ?? 'Patient';
+                              final patientId = prefs.getString('user_id') ?? 'Unknown ID';
+                              
+                              final List<Map<String, String>> medList = (p['medicines'] as List<dynamic>).map((m) {
+                                if (m is Map) {
+                                  return {
+                                    'name': m['name']?.toString() ?? '',
+                                    'timing': m['dosage']?.toString() ?? m['timing']?.toString() ?? '',
+                                    'context': m['frequency']?.toString() ?? m['context']?.toString() ?? '',
+                                    'duration': m['duration']?.toString() ?? '',
+                                    'instruction': m['instruction']?.toString() ?? '',
+                                  };
+                                }
+                                return {'name': m.toString(), 'timing': '', 'context': '', 'duration': '', 'instruction': ''};
+                              }).toList();
+
+                              await PdfService.generateAndPrintPrescription(
+                                doctorName: "Dr. ${p['doctorName'] ?? 'Unknown'}",
+                                patientName: patientName,
+                                patientId: patientId,
+                                symptoms: p['diagnosis'] ?? 'N/A',
+                                medicines: medList,
+                                labTests: [], // Add lab tests if they exist in p['labTests']
+                                date: DateFormat('MMM dd, yyyy').format(date),
+                              );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error generating PDF: $e")));
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.download),
+                          label: const Text("Download PDF"),
+                        ),
+                      ),
                     ],
                   ),
                 ),

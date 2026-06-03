@@ -41,6 +41,18 @@ router.post('/prescriptions', protect, authorize('Doctor'), async (req, res) => 
             digitalSignature
         });
 
+        // Mark the active appointment as Finished
+        const appointment = await Appointment.findOne({
+            doctorId: req.user.id,
+            abhaId: abhaId,
+            status: { $in: ['Pending', 'Confirmed'] }
+        }).sort({ date: 1 });
+        
+        if (appointment) {
+            appointment.status = 'Finished';
+            await appointment.save();
+        }
+
         res.status(201).json(prescription);
     } catch (error) {
         console.error(error);
@@ -246,6 +258,21 @@ router.post('/appointments/:id/reschedule', protect, authorize('Doctor'), async 
         appointment.status = 'RescheduleRequested';
         appointment.rescheduleDate = rescheduleDate;
         appointment.rescheduleNotes = rescheduleNotes;
+        await appointment.save();
+        res.json(appointment);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Finish appointment
+router.post('/appointments/:id/finish', protect, authorize('Doctor'), async (req, res) => {
+    try {
+        const appointment = await Appointment.findOne({ _id: req.params.id, doctorId: req.user.id });
+        if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+        
+        appointment.status = 'Finished';
         await appointment.save();
         res.json(appointment);
     } catch (error) {

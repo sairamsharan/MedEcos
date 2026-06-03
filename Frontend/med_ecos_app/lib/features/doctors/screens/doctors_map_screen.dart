@@ -31,6 +31,7 @@ class _DoctorsMapScreenState extends State<DoctorsMapScreen> {
   @override
   void initState() {
     super.initState();
+    _locateMe();
     _refreshDoctors();
     _searchController.addListener(_refreshDoctors);
   }
@@ -47,6 +48,8 @@ class _DoctorsMapScreenState extends State<DoctorsMapScreen> {
       availableOnly: _availableOnly,
       searchQuery: _searchController.text,
       sortBy: _sortBy,
+      userLat: _centre.latitude,
+      userLng: _centre.longitude,
     );
     if (mounted) {
       setState(() {
@@ -79,6 +82,7 @@ class _DoctorsMapScreenState extends State<DoctorsMapScreen> {
       final newCentre = LatLng(pos.latitude, pos.longitude);
       setState(() => _centre = newCentre);
       _mapController.move(newCentre, 14);
+      _refreshDoctors();
     } catch (e) {
       _showSnack('Could not get location: $e');
     } finally {

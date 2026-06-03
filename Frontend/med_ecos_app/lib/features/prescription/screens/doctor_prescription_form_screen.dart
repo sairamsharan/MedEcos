@@ -7,6 +7,7 @@ import '../../../core/services/gemini_service.dart';
 import '../../../core/utils/medicine_utils.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PrescriptionFormScreen extends StatefulWidget {
   final String patientId; // Pass patient info
@@ -57,7 +58,7 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
 
   Future<void> _fetchMedicines() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5000/api/v1/public/medicines'));
+      final response = await http.get(Uri.parse('http://localhost:5000/api/public/medicines'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         if (mounted) {
@@ -169,23 +170,24 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
   }
 
 
-  void _savePrescription() {
+  Future<void> _savePrescription() async {
     if (_medicines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine")));
       return;
     }
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final doctorName = prefs.getString('username') ?? 'Dr. Tanishq';
       // Generate ID
       final String prescriptionId = "PRES-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}";
-      final String date = DateTime.now().toString().split(' ')[0];
 
       // Create Model
       final prescription = Prescription(
         id: prescriptionId,
         patientId: widget.patientId,
         patientName: widget.patientName,
-        doctorName: "Dr. Tanishq", // Hardcoded for now
+        doctorName: doctorName,
         date: DateTime.now(),
         diagnosis: _symptomsController.text,
         medicines: List.from(_medicines),
@@ -193,19 +195,20 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
       );
 
       // Save to Service
-      ApiService().addPrescription(prescription);
+      await ApiService().addPrescription(prescription);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Prescription Saved Successfully")));
       
       // Navigate back after saving
-      Navigator.pop(context);
+      Navigator.pop(context, true); // Pass true to signal refresh
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
-  void _printPrescription() async {
+  Future<void> _printPrescription() async {
     if (_medicines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine to print")));
       return;
@@ -215,8 +218,10 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
     final String date = DateTime.now().toString().split(' ')[0];
     
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final doctorName = prefs.getString('username') ?? 'Dr. Tanishq';
       await PdfService.generateAndPrintPrescription(
-        doctorName: "Dr. Tanishq",
+        doctorName: doctorName,
         patientName: widget.patientName,
         patientId: widget.patientId,
         symptoms: _symptomsController.text,
@@ -225,6 +230,7 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
         date: date,
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error printing: $e")));
     }
   }
@@ -291,7 +297,6 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
                   Text("Add Medicine", style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   
-                  // Medicine Search (Allows custom)
                   Autocomplete<String>(
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       if (textEditingValue.text == '') {
@@ -301,29 +306,29 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
                         return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
                       });
                     },
-                    optionsViewBuilder: _buildOptionsView,
                     onSelected: (String selection) {
-                       setState(() {
-                        _medicineSearchController.text = selection;
-                       });
+                      _medicineSearchController.text = selection;
                     },
-                    fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                      // Ensure the initial value is synced
-                      if (controller.text != _medicineSearchController.text) {
-                        controller.text = _medicineSearchController.text;
-                      }
+                    fieldViewBuilder: (BuildContext context, TextEditingController textEditingController, FocusNode focusNode, VoidCallback onFieldSubmitted) {
+                      // Keep the external controller in sync so the "Add Medicine to List" button works
+                      textEditingController.addListener(() {
+                        _medicineSearchController.text = textEditingController.text;
+                      });
+                      
                       return TextField(
-                        controller: controller, // Use the Autocomplete controller
+                        controller: textEditingController,
                         focusNode: focusNode,
-                        onEditingComplete: onEditingComplete,
                         decoration: const InputDecoration(
-                          labelText: "Medicine Name (Select or Type New)",
+                          labelText: 'Search or Type Medicine Name',
                           prefixIcon: Icon(Icons.medication),
                         ),
-                        onChanged: (val) {
-                           _medicineSearchController.text = val;
+                        onSubmitted: (String value) {
+                          onFieldSubmitted();
                         },
                       );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return _buildOptionsView(context, onSelected, options);
                     },
                   ),
                   const SizedBox(height: 16),

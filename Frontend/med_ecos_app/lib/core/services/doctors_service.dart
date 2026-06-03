@@ -26,14 +26,22 @@ class DoctorsService {
     bool availableOnly = false,
     String searchQuery = '',
     SortOption sortBy = SortOption.nearest,
+    double? userLat,
+    double? userLng,
   }) async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5000/api/v1/public/doctors'));
+      final response = await http.get(Uri.parse('http://localhost:5000/api/public/doctors'));
       if (response.statusCode != 200) {
         throw Exception('Failed to load doctors');
       }
       final List<dynamic> data = jsonDecode(response.body);
       List<Doctor> result = data.map((json) => Doctor.fromJson(json)).toList();
+
+      if (userLat != null && userLng != null) {
+        for (var d in result) {
+          d.distanceKm = haversineDistance(userLat, userLng, d.lat, d.lng);
+        }
+      }
 
       if (selectedSpecialization != 'All') {
         result = result.where((d) => d.specialization == selectedSpecialization).toList();
