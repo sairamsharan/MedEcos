@@ -158,8 +158,8 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                                 if (m is Map) {
                                   return {
                                     'name': m['name']?.toString() ?? '',
-                                    'timing': m['dosage']?.toString() ?? m['timing']?.toString() ?? '',
-                                    'context': m['frequency']?.toString() ?? m['context']?.toString() ?? '',
+                                    'timing': m['timing']?.toString().isNotEmpty == true ? m['timing'].toString() : (m['dosage']?.toString() ?? ''),
+                                    'context': m['context']?.toString().isNotEmpty == true ? m['context'].toString() : (m['frequency']?.toString() ?? ''),
                                     'duration': m['duration']?.toString() ?? '',
                                     'instruction': m['instruction']?.toString() ?? '',
                                   };
@@ -174,7 +174,9 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                                 symptoms: p['diagnosis'] ?? 'N/A',
                                 medicines: medList,
                                 labTests: [], // Add lab tests if they exist in p['labTests']
-                                date: DateFormat('MMM dd, yyyy').format(date),
+                                date: DateFormat('MMM dd, yyyy hh:mm a').format(date),
+                                doctorSpeciality: prefs.getString('speciality') ?? 'General Physician',
+                                clinicLocation: prefs.getString('location') ?? 'MedEcos Clinic Network',
                               );
                             } catch (e) {
                               if (context.mounted) {

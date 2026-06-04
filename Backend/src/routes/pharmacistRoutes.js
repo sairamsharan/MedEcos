@@ -133,4 +133,56 @@ router.put('/prescriptions/:id/notes', protect, authorize('Pharmacist'), async (
     }
 });
 
+// Get Inventory
+router.get('/inventory', protect, authorize('Pharmacist'), async (req, res) => {
+    try {
+        const Inventory = require('../models/Inventory');
+        const inventory = await Inventory.find({ pharmacistId: req.user.id }).sort({ medicineName: 1 });
+        res.json(inventory);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Add or Update Inventory Item
+router.post('/inventory', protect, authorize('Pharmacist'), async (req, res) => {
+    try {
+        const Inventory = require('../models/Inventory');
+        const { medicineName, quantity, price, expiryDate } = req.body;
+
+        if (!medicineName || quantity === undefined || price === undefined) {
+            return res.status(400).json({ message: 'Medicine Name, Quantity, and Price are required' });
+        }
+
+        // Try to find if this medicine is already in the pharmacist's inventory
+        let item = await Inventory.findOne({ pharmacistId: req.user.id, medicineName });
+
+        if (item) {
+            // Update existing
+            item.quantity += quantity; // Or just set it if we want absolute override. Let's do absolute override for now since they might be doing inventory count.
+            // Wait, the plan was just to add stock or update. Let's just override quantity if it exists, or maybe add.
+            // A realistic system would add. But an absolute set is safer for a simple app. We'll set absolute.
+            item.quantity = quantity;
+            item.price = price;
+            if (expiryDate) item.expiryDate = expiryDate;
+            await item.save();
+        } else {
+            // Create new
+            item = await Inventory.create({
+                pharmacistId: req.user.id,
+                medicineName,
+                quantity,
+                price,
+                expiryDate
+            });
+        }
+
+        res.status(201).json(item);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

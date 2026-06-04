@@ -4,6 +4,8 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 const Prescription = require('../models/Prescription');
 const MedicineHistory = require('../models/MedicineHistory');
 const Appointment = require('../models/Appointment');
+const User = require('../models/User');
+const LabTestOrder = require('../models/LabTestOrder');
 
 // Get My Medical History (Prescriptions)
 router.get('/prescriptions', protect, authorize('Patient'), async (req, res) => {
@@ -38,6 +40,21 @@ router.get('/prescriptions', protect, authorize('Patient'), async (req, res) => 
 // Get Profile
 router.get('/profile', protect, authorize('Patient'), async (req, res) => {
     res.json(req.user);
+});
+
+// Update Profile (Routine Settings)
+router.put('/profile', protect, authorize('Patient'), async (req, res) => {
+    try {
+        const { routine } = req.body;
+        if (routine) {
+            req.user.routine = routine;
+        }
+        await req.user.save();
+        res.json(req.user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 // Get Dashboard Stats
@@ -166,6 +183,48 @@ router.post('/appointments/:id/accept-reschedule', protect, authorize('Patient')
         
         await appointment.save();
         res.json(appointment);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get Lab Locations
+router.get('/labs', protect, authorize('Patient'), async (req, res) => {
+    try {
+        const labs = await User.find({ role: 'Lab_Tester' }).select('username location address labTestsProvided');
+        res.json(labs);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Book a Lab Test
+router.post('/lab-test-orders', protect, authorize('Patient'), async (req, res) => {
+    try {
+        const { labTesterId, testName } = req.body;
+        if (!labTesterId || !testName) return res.status(400).json({ message: 'labTesterId and testName are required' });
+
+        const order = await LabTestOrder.create({
+            patientId: req.user._id,
+            patientName: req.user.username,
+            labTesterId,
+            testName,
+            status: 'Pending'
+        });
+        res.status(201).json(order);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get Patient's Lab Test Orders
+router.get('/lab-test-orders', protect, authorize('Patient'), async (req, res) => {
+    try {
+        const orders = await LabTestOrder.find({ patientId: req.user._id }).populate('labTesterId', 'username').sort({ createdAt: -1 });
+        res.json(orders);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

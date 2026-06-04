@@ -39,6 +39,9 @@ const prescriptionSchema = new mongoose.Schema({
         medicineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medicine' },
         frequency: { type: String }, // e.g., "1-0-1"
         duration: { type: String },  // e.g., "5 days"
+        timing: { type: String },
+        context: { type: String },
+        instruction: { type: String },
     }],
     labTests: [{
         type: String

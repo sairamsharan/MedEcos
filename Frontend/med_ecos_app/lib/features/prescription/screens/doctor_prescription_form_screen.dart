@@ -8,6 +8,7 @@ import '../../../core/utils/medicine_utils.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 class PrescriptionFormScreen extends StatefulWidget {
   final String patientId; // Pass patient info
@@ -215,7 +216,7 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Generating PDF...")));
-    final String date = DateTime.now().toString().split(' ')[0];
+    final String date = DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.now());
     
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -228,6 +229,8 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
         medicines: List.from(_medicines),
         labTests: List.from(_selectedLabTests),
         date: date,
+        doctorSpeciality: prefs.getString('speciality') ?? 'General Physician',
+        clinicLocation: prefs.getString('location') ?? 'MedEcos Clinic Network',
       );
     } catch (e) {
       if (!mounted) return;

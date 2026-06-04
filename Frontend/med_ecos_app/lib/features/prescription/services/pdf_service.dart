@@ -14,6 +14,8 @@ class PdfService {
     required List<Map<String, String>> medicines,
     required List<String> labTests,
     required String date,
+    String doctorSpeciality = 'General Physician',
+    String clinicLocation = '',
   }) async {
     final fontRegular = await PdfGoogleFonts.openSansRegular();
     final fontBold = await PdfGoogleFonts.openSansBold();
@@ -46,12 +48,25 @@ class PdfService {
                       children: [
                         pw.Image(logoImage, height: 50, width: 50),
                         pw.SizedBox(width: 16),
-                        pw.Text("MedEcos Clinic", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.teal)),
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text("MedEcos Clinic", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.teal)),
+                            if (clinicLocation.isNotEmpty)
+                              pw.Text(clinicLocation, style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
+                          ],
+                        ),
                       ],
                     ),
-                    pw.Text("Date: $date"),
+                    pw.Text("Date & Time: \n$date", textAlign: pw.TextAlign.right),
                   ],
                 ),
+              ),
+              pw.SizedBox(height: 10),
+              
+              // Document Title
+              pw.Center(
+                child: pw.Text("PRESCRIPTION", style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, letterSpacing: 2)),
               ),
               pw.SizedBox(height: 20),
               
@@ -63,7 +78,7 @@ class PdfService {
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(doctorName, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                      pw.Text("Cardiologist"),
+                      pw.Text(doctorSpeciality),
                     ],
                    ),
                    pw.Column(

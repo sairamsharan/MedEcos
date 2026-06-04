@@ -21,7 +21,9 @@ class _SignupScreenState extends State<SignupScreen> {
   final _specialityController = TextEditingController();
   final _latController = TextEditingController();
   final _lngController = TextEditingController();
+  final _ageController = TextEditingController();
   String _selectedRole = 'Patient';
+  String? _selectedGender;
   bool _isLoading = false;
   bool _isLocating = false;
   String? _errorMessage;
@@ -35,10 +37,10 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    if (_selectedRole == 'Doctor') {
+    if (_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') {
       if (_latController.text.isEmpty || _lngController.text.isEmpty) {
         setState(() {
-          _errorMessage = 'Location is mandatory for Doctors. Please enter or detect your location.';
+          _errorMessage = 'Location is mandatory for ${_selectedRole}s. Please enter or detect your location.';
         });
         return;
       }
@@ -67,8 +69,10 @@ class _SignupScreenState extends State<SignupScreen> {
           'password': _passwordController.text,
           'abhaId': _selectedRole == 'Patient' ? _abhaController.text : '',
           'role': _selectedRole,
+          if (_selectedRole == 'Patient') 'age': int.tryParse(_ageController.text),
+          if (_selectedRole == 'Patient') 'gender': _selectedGender,
           if (_selectedRole == 'Doctor') 'speciality': _specialityController.text,
-          if (_selectedRole == 'Doctor' && _latController.text.isNotEmpty && _lngController.text.isNotEmpty)
+          if ((_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') && _latController.text.isNotEmpty && _lngController.text.isNotEmpty)
             'location': {
               'lat': double.tryParse(_latController.text) ?? 0,
               'lng': double.tryParse(_lngController.text) ?? 0,
@@ -177,8 +181,8 @@ class _SignupScreenState extends State<SignupScreen> {
                     labelText: 'Role',
                     border: OutlineInputBorder(),
                   ),
-                  items: ['Patient', 'Doctor', 'Pharmacist'].map((role) {
-                    return DropdownMenuItem(value: role, child: Text(role));
+                  items: ['Patient', 'Doctor', 'Pharmacist', 'Lab_Tester'].map((role) {
+                    return DropdownMenuItem(value: role, child: Text(role.replaceAll('_', ' ')));
                   }).toList(),
                   onChanged: (val) {
                     setState(() {
@@ -198,16 +202,53 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                ],
-                if (_selectedRole == 'Doctor') ...[
-                  TextField(
-                    controller: _specialityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Type of Doctor (e.g. Cardiologist)',
-                      border: OutlineInputBorder(),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: TextField(
+                          controller: _ageController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Age *',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedGender,
+                          decoration: const InputDecoration(
+                            labelText: 'Gender *',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: ['Male', 'Female', 'Other'].map((gender) {
+                            return DropdownMenuItem(value: gender, child: Text(gender));
+                          }).toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedGender = val;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
+                ],
+                if (_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') ...[
+                  if (_selectedRole == 'Doctor') ...[
+                    TextField(
+                      controller: _specialityController,
+                      decoration: const InputDecoration(
+                        labelText: 'Type of Doctor (e.g. Cardiologist)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Row(
                     children: [
                       Expanded(

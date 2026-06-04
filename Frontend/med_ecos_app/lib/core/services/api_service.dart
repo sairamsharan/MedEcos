@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/patient_model.dart';
 import '../models/prescription_model.dart';
+import '../models/inventory_model.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -82,6 +83,9 @@ class ApiService {
                   'dosage': m['dosage']?.toString() ?? '',
                   'frequency': m['frequency']?.toString() ?? '',
                   'duration': m['duration']?.toString() ?? '',
+                  'timing': m['timing']?.toString() ?? '',
+                  'context': m['context']?.toString() ?? '',
+                  'instruction': m['instruction']?.toString() ?? '',
                 };
               }
               return <String, String>{'name': m.toString()};
@@ -177,6 +181,53 @@ class ApiService {
     return patientPrescriptions;
   }
 
+  Future<List<Prescription>> fetchAllPrescriptionsForPatient(String patientId) async {
+    try {
+      final headers = await _getHeaders();
+      final baseUrl = await _baseUrl;
+      final response = await http.get(Uri.parse('$baseUrl/prescriptions/$patientId'), headers: headers);
+      if (response.statusCode == 200) {
+        final dynamic data = jsonDecode(response.body);
+        List<dynamic> rxData;
+        if (data is Map && data.containsKey('records')) {
+          rxData = data['records'];
+        } else {
+          rxData = data;
+        }
+        return rxData.map((e) => Prescription(
+          id: e['id'] ?? e['_id'] ?? e['prescriptionId'] ?? '',
+          patientId: e['patientId'] ?? e['abhaId'] ?? '',
+          patientName: e['patientName'] ?? '',
+          doctorName: e['doctorName'] ?? '',
+          date: DateTime.parse(e['date'] ?? DateTime.now().toIso8601String()),
+          diagnosis: e['diagnosis'] ?? '',
+          medicines: (e['fullMedicines'] as List<dynamic>? ?? e['medicines'] as List<dynamic>?)?.map((m) {
+            if (m is Map) {
+              return <String, String>{
+                'name': m['name']?.toString() ?? '',
+                'dosage': m['dosage']?.toString() ?? '',
+                'frequency': m['frequency']?.toString() ?? '',
+                'duration': m['duration']?.toString() ?? '',
+                'timing': m['timing']?.toString() ?? '',
+                'context': m['context']?.toString() ?? '',
+                'instruction': m['instruction']?.toString() ?? '',
+              };
+            }
+            return <String, String>{'name': m.toString()};
+          }).toList() ?? <Map<String, String>>[],
+          labTests: (e['labTests'] as List<dynamic>?)?.map((l) => l.toString()).toList() ?? <String>[],
+          status: e['status'] ?? 'Active',
+          doctorNotes: e['doctorNotes'],
+          pharmacistNotes: e['pharmacistNotes'],
+        )).toList();
+      }
+    } catch (e) {
+      print('Error fetching patient prescriptions from server: $e');
+    }
+    // Fallback to local
+    return getPrescriptionsForPatient(patientId);
+  }
+
   // Patients Management
   List<Patient> searchPatients(String query) {
     if (query.isEmpty) return _patients;
@@ -251,6 +302,24 @@ class ApiService {
     }
   }
 
+  // Update Profile Routine
+  Future<void> updateRoutine(Map<String, String> routine) async {
+    try {
+      final headers = await _getHeaders();
+      final baseUrl = await _baseUrl;
+      final response = await http.put(
+        Uri.parse('$baseUrl/profile'),
+        headers: headers,
+        body: jsonEncode({'routine': routine}),
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update routine: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
   Future<List<dynamic>> getMedicineHistory() async {
     try {
       final headers = await _getHeaders();
@@ -302,6 +371,71 @@ class ApiService {
       );
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception('Failed to finish appointment: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Inventory API
+  Future<List<InventoryItem>> getInventory() async {
+    try {
+      final headers = await _getHeaders();
+      final baseUrl = await _baseUrl;
+      final response = await http.get(Uri.parse('$baseUrl/inventory'), headers: headers);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((e) => InventoryItem.fromJson(e)).toList();
+      } else {
+        throw Exception('Failed to load inventory');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<void> addInventoryItem({
+    required String medicineName,
+    required int quantity,
+    required double price,
+    DateTime? expiryDate,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final baseUrl = await _baseUrl;
+      final body = <String, dynamic>{
+        'medicineName': medicineName,
+        'quantity': quantity,
+        'price': price,
+      };
+      if (expiryDate != null) {
+        body['expiryDate'] = expiryDate.toIso8601String();
+      }
+      final response = await http.post(
+        Uri.parse('$baseUrl/inventory'),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+      if (response.statusCode != 201) {
+        throw Exception('Failed to add inventory item: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Lab Tester API
+  Future<Map<String, dynamic>> getPatientLabTests(String abhaId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('http://localhost:5000/api/v1/lab_tester/patients/$abhaId/lab-tests'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to load lab tests: ${response.body}');
       }
     } catch (e) {
       throw Exception('Network error: $e');

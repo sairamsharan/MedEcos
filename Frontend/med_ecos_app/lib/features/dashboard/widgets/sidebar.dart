@@ -46,6 +46,14 @@ class Sidebar extends StatelessWidget {
         const Spacer(),
         _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
       ];
+    } else if (userRole == 'Lab_Tester') {
+      items = [
+        _NavItem(icon: Icons.dashboard, label: "Dashboard", isSelected: selectedIndex == 0, onTap: () => onItemSelected(0)),
+        _NavItem(icon: Icons.search, label: "Lookup", isSelected: selectedIndex == 1, onTap: () => onItemSelected(1)),
+        _NavItem(icon: Icons.science, label: "Lab Tests", isSelected: selectedIndex == 2, onTap: () => onItemSelected(2)),
+        const Spacer(),
+        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
+      ];
     }
 
     return Container(
@@ -111,7 +119,9 @@ class _NavItem extends StatelessWidget {
         color: isSelected ? AppColors.surfaceVariant : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
         leading: Icon(
           icon,
           color: isSelected ? AppColors.primary : AppColors.textSecondary,
@@ -124,6 +134,7 @@ class _NavItem extends StatelessWidget {
           ),
         ),
         onTap: onTap,
+      ),
       ),
     );
   }

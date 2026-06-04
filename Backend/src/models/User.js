@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['Doctor', 'Patient', 'Pharmacist', 'Pathologist'],
+        enum: ['Doctor', 'Patient', 'Pharmacist', 'Lab_Tester'],
         default: 'Patient',
     },
     abhaId: {
@@ -53,6 +53,13 @@ const userSchema = new mongoose.Schema({
         lat: { type: Number },
         lng: { type: Number },
     },
+    routine: {
+        morning: { type: String, default: '08:00 AM' },
+        afternoon: { type: String, default: '01:00 PM' },
+        evening: { type: String, default: '05:00 PM' },
+        night: { type: String, default: '09:00 PM' }
+    },
+
     // Doctor Specific Fields
     speciality: {
         type: String,
@@ -79,6 +86,9 @@ const userSchema = new mongoose.Schema({
     },
     // Track patients that a doctor/pharmacist has explicitly registered/interacted with
     patients: [{
+        type: String
+    }],
+    labTestsProvided: [{
         type: String
     }]
 }, { timestamps: true });

@@ -5,6 +5,7 @@ import '../../../core/models/patient_model.dart';
 import '../../../core/services/api_service.dart';
 import '../../prescription/screens/doctor_prescription_form_screen.dart' as doctor;
 import '../../prescription/screens/pharmacist_prescription_form_screen.dart' as pharmacist;
+import '../../../core/utils/medicine_utils.dart';
 import 'package:intl/intl.dart';
 
 class PatientDetailsScreen extends StatefulWidget {
@@ -43,8 +44,10 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       }
     }
 
+    final prescriptionsFromServer = await ApiService().fetchAllPrescriptionsForPatient(widget.patientId);
+
     setState(() {
-      _prescriptions = ApiService().getPrescriptionsForPatient(widget.patientId);
+      _prescriptions = prescriptionsFromServer;
       _loading = false;
     });
   }
@@ -132,6 +135,16 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             ),
 
             const SizedBox(height: 32),
+            Text("Active Medicines", style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.green)),
+            const SizedBox(height: 16),
+            ..._buildMedicineList(true),
+            
+            const SizedBox(height: 32),
+            Text("Previous Medicines", style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(height: 16),
+            ..._buildMedicineList(false),
+            
+            const SizedBox(height: 32),
             Text("Prescription History", style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             
@@ -180,5 +193,42 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         ),
       ),
     );
+  }
+  
+  List<Widget> _buildMedicineList(bool isActive) {
+    List<Map<String, dynamic>> targetMedicines = [];
+    
+    for (var p in _prescriptions) {
+      for (var m in p.medicines) {
+        final duration = m['duration'] ?? '';
+        final isMedActive = MedicineUtils.isActiveMedicine(p.date, duration);
+        if (isMedActive == isActive) {
+          targetMedicines.add({
+            'name': m['name'],
+            'dosage': m['dosage'],
+            'duration': duration,
+            'doctor': p.doctorName,
+            'date': p.date,
+          });
+        }
+      }
+    }
+    
+    if (targetMedicines.isEmpty) {
+      return [const Text("No medicines found in this category.")];
+    }
+    
+    return targetMedicines.map((m) => Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+          child: Icon(Icons.medication, color: isActive ? Colors.green : Colors.grey),
+        ),
+        title: Text(m['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text("Dosage: ${m['dosage']} • Duration: ${m['duration']}\nPrescribed by ${m['doctor']} on ${DateFormat.yMMMd().format(m['date'])}"),
+        isThreeLine: true,
+      ),
+    )).toList();
   }
 }

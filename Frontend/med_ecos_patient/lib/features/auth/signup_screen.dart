@@ -17,6 +17,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _abhaController = TextEditingController();
+  final _ageController = TextEditingController();
+  String? _selectedGender;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -35,6 +37,8 @@ class _SignupScreenState extends State<SignupScreen> {
           'email': _emailController.text,
           'password': _passwordController.text,
           'abhaId': _abhaController.text,
+          'age': int.tryParse(_ageController.text),
+          'gender': _selectedGender,
           'role': 'Patient',
         }),
       );
@@ -106,6 +110,41 @@ class _SignupScreenState extends State<SignupScreen> {
                     labelText: 'ABHA ID (e.g. 1111-2222-3333-4444)',
                     border: OutlineInputBorder(),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        controller: _ageController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Age *',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 1,
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedGender,
+                        decoration: const InputDecoration(
+                          labelText: 'Gender *',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: ['Male', 'Female', 'Other'].map((gender) {
+                          return DropdownMenuItem(value: gender, child: Text(gender));
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedGender = val;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextField(

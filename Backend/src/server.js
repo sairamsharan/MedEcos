@@ -23,17 +23,16 @@ app.use(express.static(path.join(__dirname, '../../Frontend/public')));
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
-
-// Routes
 const doctorRoutes = require('./routes/doctorRoutes');
 const patientRoutes = require('./routes/patientRoutes');
+const pharmacistRoutes = require('./routes/pharmacistRoutes');
+const labTesterRoutes = require('./routes/labTesterRoutes');
 
+app.use('/api/auth', authRoutes);
 app.use('/api/v1/doctor', doctorRoutes);
 app.use('/api/v1/patient', patientRoutes);
-
-const pharmacistRoutes = require('./routes/pharmacistRoutes');
 app.use('/api/v1/pharmacist', pharmacistRoutes);
+app.use('/api/v1/lab_tester', labTesterRoutes);
 
 // ABDM Webhook Routes
 const abdmRoutes = require('./routes/abdmRoutes');

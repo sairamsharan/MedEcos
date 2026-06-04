@@ -11,7 +11,7 @@ const { protect } = require('../middleware/authMiddleware');
 // Register
 router.post('/register', async (req, res) => {
     try {
-        const { username, email, password, role, abhaId, location, speciality } = req.body;
+        const { username, email, password, role, abhaId, location, speciality, age, gender } = req.body;
 
         // Simple validation
         if (!username || !email || !password || !role) {
@@ -19,15 +19,15 @@ router.post('/register', async (req, res) => {
         }
 
         // Validate Role
-        const validRoles = ['Doctor', 'Patient', 'Pharmacist', 'Pathologist'];
+        const validRoles = ['Doctor', 'Patient', 'Pharmacist', 'Lab_Tester'];
         if (!validRoles.includes(role)) {
             return res.status(400).json({ message: 'Invalid role' });
         }
 
-        // Validate location for Doctor role
-        if (role === 'Doctor') {
+        // Validate location for Doctor and Lab_Tester role
+        if (role === 'Doctor' || role === 'Lab_Tester') {
             if (!location || !location.lat || !location.lng) {
-                return res.status(400).json({ message: 'Location (lat/lng) is mandatory for Doctors' });
+                return res.status(400).json({ message: 'Location (lat/lng) is mandatory for Doctors and Lab Testers' });
             }
         }
 
@@ -78,8 +78,10 @@ router.post('/register', async (req, res) => {
             abhaId: role === 'Patient' ? abhaId : undefined,
             publicKey, // Will be undefined if not Doctor
             privateKey, // Will be undefined if not Doctor
-            location: role === 'Doctor' ? location : undefined,
+            location: (role === 'Doctor' || role === 'Lab_Tester') ? location : undefined,
             speciality: role === 'Doctor' ? speciality : undefined,
+            age: (role === 'Patient' && age) ? age : undefined,
+            gender: (role === 'Patient' && gender) ? gender : undefined,
         });
 
         if (user) {
@@ -322,6 +324,7 @@ router.put('/profile', protect, async (req, res) => {
         if (req.body.location !== undefined) user.location = req.body.location;
         if (req.body.age !== undefined) user.age = req.body.age;
         if (req.body.gender !== undefined) user.gender = req.body.gender;
+        if (req.body.routine !== undefined) user.routine = req.body.routine;
 
         // Doctor specific fields
         if (user.role === 'Doctor') {
@@ -329,6 +332,11 @@ router.put('/profile', protect, async (req, res) => {
             if (req.body.experienceYears !== undefined) user.experienceYears = req.body.experienceYears;
             if (req.body.consultationFee !== undefined) user.consultationFee = req.body.consultationFee;
             if (req.body.hospital !== undefined) user.hospital = req.body.hospital;
+        }
+
+        // Lab Tester specific fields
+        if (user.role === 'Lab_Tester') {
+            if (req.body.labTestsProvided !== undefined) user.labTestsProvided = req.body.labTestsProvided;
         }
 
         const updatedUser = await user.save();
