@@ -22,17 +22,28 @@ router.get('/patients/:abhaId/lab-tests', protect, authorize('Lab_Tester'), asyn
             labTests: { $exists: true, $not: { $size: 0 } }
         }).sort({ date: -1 });
 
+        // Fetch existing orders to merge status
+        const existingOrders = await LabTestOrder.find({ patientId: patient._id });
+
         // Extract and format the lab tests
         const testsToPerform = [];
         prescriptions.forEach(p => {
             if (p.labTests && p.labTests.length > 0) {
                 p.labTests.forEach(test => {
+                    // Find if there's an existing order for this exact test from this prescription
+                    const order = existingOrders.find(o => 
+                        o.testName === test && 
+                        o.prescriptionId?.toString() === p._id.toString()
+                    );
+                    
                     testsToPerform.push({
                         testName: test,
                         prescriptionId: p._id,
                         doctorName: p.doctorName,
                         datePrescribed: p.date,
                         diagnosis: p.diagnosis,
+                        status: order ? order.status : 'Pending',
+                        orderId: order ? order._id : null
                     });
                 });
             }
@@ -47,6 +58,60 @@ router.get('/patients/:abhaId/lab-tests', protect, authorize('Lab_Tester'), asyn
             },
             tests: testsToPerform
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Process a Lab Test (Create or Update LabTestOrder to In_Progress)
+router.post('/patients/:abhaId/process-test', protect, authorize('Lab_Tester'), async (req, res) => {
+    try {
+        const { abhaId } = req.params;
+        const { testName, prescriptionId } = req.body;
+        
+        if (!testName || !prescriptionId) {
+            return res.status(400).json({ message: 'testName and prescriptionId are required' });
+        }
+
+        const patient = await User.findOne({ abhaId, role: 'Patient' });
+        if (!patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        // Check if order already exists
+        let order = await LabTestOrder.findOne({
+            patientId: patient._id,
+            prescriptionId,
+            testName
+        });
+
+        if (order) {
+            if (order.status === 'Completed') {
+                return res.status(400).json({ message: 'Test already completed' });
+            }
+            order.status = 'In_Progress';
+            order.labTesterId = req.user._id; // Take ownership
+            await order.save();
+        } else {
+            order = await LabTestOrder.create({
+                patientId: patient._id,
+                patientName: patient.username || 'Unknown Patient',
+                labTesterId: req.user._id,
+                testName,
+                prescriptionId,
+                status: 'In_Progress'
+            });
+        }
+
+        // Check if the lab tester already provides this test, if not, add it
+        const labTester = await User.findById(req.user._id);
+        if (labTester && !labTester.labTestsProvided.includes(testName)) {
+            labTester.labTestsProvided.push(testName);
+            await labTester.save();
+        }
+
+        res.json(order);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

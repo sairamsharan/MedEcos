@@ -14,6 +14,7 @@ import '../../../core/services/api_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../features/doctors/screens/doctors_map_screen.dart';
 import '../../prescriptions/screens/prescriptions_screen.dart';
+import '../../lab_tests/screens/patient_lab_orders_screen.dart';
 import '../widgets/sidebar.dart';
 import '../widgets/header.dart';
 import '../widgets/stat_card.dart';
@@ -136,6 +137,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 3:
         return const HistoryScreen();
       case 4:
+        return const PatientLabOrdersScreen();
+      case 5:
         return const SettingsScreen();
       default:
         return const Center(child: Text("Coming Soon"));

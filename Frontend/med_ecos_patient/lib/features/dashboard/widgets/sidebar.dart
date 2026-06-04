@@ -52,12 +52,18 @@ class Sidebar extends StatelessWidget {
             isSelected: selectedIndex == 3,
             onTap: () => onItemSelected(3),
           ),
+          _NavItem(
+            icon: Icons.science, 
+            label: "Lab Orders", 
+            isSelected: selectedIndex == 4,
+            onTap: () => onItemSelected(4),
+          ),
           const Spacer(),
           _NavItem(
             icon: Icons.settings, 
             label: "Settings", 
-            isSelected: selectedIndex == 4,
-            onTap: () => onItemSelected(4),
+            isSelected: selectedIndex == 5,
+            onTap: () => onItemSelected(5),
           ),
           const SizedBox(height: 10),
           _NavItem(

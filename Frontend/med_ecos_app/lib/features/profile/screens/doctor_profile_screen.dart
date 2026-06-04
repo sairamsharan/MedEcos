@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/login_screen.dart';
+import '../../../core/widgets/location_picker_screen.dart';
+import 'package:latlong2/latlong.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -190,12 +192,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _isLocating ? null : _detectLocation,
-              icon: _isLocating
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.my_location),
-              label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLocating ? null : _detectLocation,
+                    icon: _isLocating
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.my_location),
+                    label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      LatLng? current;
+                      if (_latController.text.isNotEmpty && _lngController.text.isNotEmpty) {
+                        current = LatLng(double.parse(_latController.text), double.parse(_lngController.text));
+                      }
+                      final LatLng? picked = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => LocationPickerScreen(initialLocation: current)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _latController.text = picked.latitude.toString();
+                          _lngController.text = picked.longitude.toString();
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.map),
+                    label: const Text('Choose from Map'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             ElevatedButton(

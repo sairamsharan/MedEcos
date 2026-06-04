@@ -172,8 +172,8 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
 
 
   Future<void> _savePrescription() async {
-    if (_medicines.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine")));
+    if (_medicines.isEmpty && _selectedLabTests.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine or lab test")));
       return;
     }
 
@@ -210,8 +210,8 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
   }
 
   Future<void> _printPrescription() async {
-    if (_medicines.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine to print")));
+    if (_medicines.isEmpty && _selectedLabTests.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine or lab test to print")));
       return;
     }
 

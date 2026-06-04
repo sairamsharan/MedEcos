@@ -147,15 +147,58 @@ class _LabTestsListScreenState extends State<LabTestsListScreen> {
                                           Text("Prescribed By: Dr. ${test['doctorName']}"),
                                           Text("Diagnosis: ${test['diagnosis']}"),
                                           Text("Date: $dateStr"),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: test['status'] == 'In_Progress' ? Colors.orange.withOpacity(0.2) : (test['status'] == 'Completed' ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2)),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text("Status: ${test['status']?.replaceAll('_', ' ') ?? 'Pending'}", style: TextStyle(
+                                              color: test['status'] == 'In_Progress' ? Colors.orange.shade800 : (test['status'] == 'Completed' ? Colors.green.shade800 : Colors.grey.shade800),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            )),
+                                          ),
                                         ],
                                       ),
                                     ),
-                                    trailing: ElevatedButton(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test marked as processing (Mock)')));
-                                      },
-                                      child: const Text('Process'),
-                                    ),
+                                    trailing: test['status'] == 'Pending' 
+                                      ? ElevatedButton(
+                                          onPressed: () async {
+                                            try {
+                                              await ApiService().processLabTest(widget.abhaId, test['testName'], test['prescriptionId']);
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test marked as in progress')));
+                                                _fetchLabTests(); // Reload to show updated status
+                                              }
+                                            } catch (e) {
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                                              }
+                                            }
+                                          },
+                                          child: const Text('Process'),
+                                        )
+                                      : (test['status'] == 'In_Progress' && test['orderId'] != null
+                                          ? ElevatedButton(
+                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                                              onPressed: () async {
+                                                try {
+                                                  await ApiService().updateLabTestStatus(test['orderId'], 'Completed');
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test completed successfully')));
+                                                    _fetchLabTests(); // Reload to show updated status
+                                                  }
+                                                } catch (e) {
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                                                  }
+                                                }
+                                              },
+                                              child: const Text('Complete'),
+                                            )
+                                          : null),
                                   ),
                                 );
                               },

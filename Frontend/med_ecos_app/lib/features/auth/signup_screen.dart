@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../core/widgets/location_picker_screen.dart';
+import 'package:latlong2/latlong.dart';
 import '../dashboard/screens/dashboard_screen.dart';
 import '../../../core/utils/abha_formatter.dart';
 
@@ -19,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _abhaController = TextEditingController();
   final _specialityController = TextEditingController();
+  final _addressController = TextEditingController();
   final _latController = TextEditingController();
   final _lngController = TextEditingController();
   final _ageController = TextEditingController();
@@ -38,9 +41,9 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     if (_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') {
-      if (_latController.text.isEmpty || _lngController.text.isEmpty) {
+      if (_latController.text.isEmpty || _lngController.text.isEmpty || _addressController.text.isEmpty) {
         setState(() {
-          _errorMessage = 'Location is mandatory for ${_selectedRole}s. Please enter or detect your location.';
+          _errorMessage = 'Location and Address are mandatory for ${_selectedRole}s.';
         });
         return;
       }
@@ -60,24 +63,32 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
+      final Map<String, dynamic> body = {
+        'username': _usernameController.text,
+        'email': _emailController.text,
+        'password': _passwordController.text,
+        'role': _selectedRole,
+      };
+
+      if (_selectedRole == 'Patient') {
+        body['abhaId'] = _abhaController.text;
+        if (_ageController.text.isNotEmpty) body['age'] = int.tryParse(_ageController.text);
+        if (_selectedGender != null) body['gender'] = _selectedGender;
+      } else if (_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') {
+        body['location'] = {
+          'lat': double.tryParse(_latController.text) ?? 0.0,
+          'lng': double.tryParse(_lngController.text) ?? 0.0,
+        };
+        body['address'] = _addressController.text;
+        if (_selectedRole == 'Doctor') {
+          body['speciality'] = _specialityController.text;
+        }
+      }
+
       final response = await http.post(
         Uri.parse('http://localhost:5000/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': _usernameController.text,
-          'email': _emailController.text,
-          'password': _passwordController.text,
-          'abhaId': _selectedRole == 'Patient' ? _abhaController.text : '',
-          'role': _selectedRole,
-          if (_selectedRole == 'Patient') 'age': int.tryParse(_ageController.text),
-          if (_selectedRole == 'Patient') 'gender': _selectedGender,
-          if (_selectedRole == 'Doctor') 'speciality': _specialityController.text,
-          if ((_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') && _latController.text.isNotEmpty && _lngController.text.isNotEmpty)
-            'location': {
-              'lat': double.tryParse(_latController.text) ?? 0,
-              'lng': double.tryParse(_lngController.text) ?? 0,
-            },
-        }),
+        body: jsonEncode(body),
       );
 
       final data = jsonDecode(response.body);
@@ -249,6 +260,14 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     const SizedBox(height: 16),
                   ],
+                  TextField(
+                    controller: _addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Clinic / Lab Address *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -275,12 +294,37 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _isLocating ? null : _detectLocation,
-                    icon: _isLocating
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.my_location),
-                    label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isLocating ? null : _detectLocation,
+                          icon: _isLocating
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.my_location),
+                          label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final LatLng? picked = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _latController.text = picked.latitude.toString();
+                                _lngController.text = picked.longitude.toString();
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.map),
+                          label: const Text('Choose from Map'),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                 ],

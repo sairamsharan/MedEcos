@@ -68,4 +68,18 @@ class ApiService {
       throw Exception('Network error: $e');
     }
   }
+
+  Future<List<dynamic>> getPatientLabOrders() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(Uri.parse('$baseUrl/lab-test-orders'), headers: headers);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as List<dynamic>;
+      } else {
+        throw Exception('Failed to get lab orders: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
 }

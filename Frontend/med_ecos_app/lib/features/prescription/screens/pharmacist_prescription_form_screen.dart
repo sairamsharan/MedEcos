@@ -99,8 +99,8 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
 
 
   void _generatePrescription() async {
-    if (_medicines.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine")));
+    if (_medicines.isEmpty && _selectedLabTests.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one medicine or lab test")));
       return;
     }
 

@@ -11,7 +11,7 @@ const { protect } = require('../middleware/authMiddleware');
 // Register
 router.post('/register', async (req, res) => {
     try {
-        const { username, email, password, role, abhaId, location, speciality, age, gender } = req.body;
+        const { username, email, password, role, abhaId, location, address, speciality, age, gender } = req.body;
 
         // Simple validation
         if (!username || !email || !password || !role) {
@@ -79,6 +79,7 @@ router.post('/register', async (req, res) => {
             publicKey, // Will be undefined if not Doctor
             privateKey, // Will be undefined if not Doctor
             location: (role === 'Doctor' || role === 'Lab_Tester') ? location : undefined,
+            address: (role === 'Doctor' || role === 'Lab_Tester') ? address : undefined,
             speciality: role === 'Doctor' ? speciality : undefined,
             age: (role === 'Patient' && age) ? age : undefined,
             gender: (role === 'Patient' && gender) ? gender : undefined,

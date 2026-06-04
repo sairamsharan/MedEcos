@@ -19,6 +19,7 @@ import '../widgets/active_medicines_list.dart';
 import '../../../features/medicines/screens/medicine_list_screen.dart';
 import '../../../features/history/screens/history_screen.dart';
 import '../../../features/doctors/screens/doctors_map_screen.dart';
+import '../../../features/lab_tests/screens/patient_lab_orders_screen.dart';
 import '../../prescriptions/screens/prescriptions_screen.dart';
 import '../../../features/profile/screens/profile_screen.dart' as patient_profile;
 import '../../../features/appointments/screens/appointments_screen.dart' as patient_appointments;
@@ -134,7 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final ordersRes = await http.get(
-        Uri.parse('http://localhost:5000/api/patients/lab-test-orders'),
+        Uri.parse('http://localhost:5000/api/v1/patient/lab-test-orders'),
         headers: {'Authorization': 'Bearer $token'},
       );
       List<dynamic> labOrders = [];
@@ -195,7 +196,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         case 1: return const PrescriptionsScreen();
         case 2: return const patient_appointments.AppointmentsScreen();
         case 3: return const HistoryScreen();
-        case 4: return const patient_profile.ProfileScreen();
+        case 4: return const PatientLabOrdersScreen();
+        case 5: return const patient_profile.ProfileScreen();
         default: return const Center(child: Text("Coming Soon"));
       }
     } else if (_userRole == 'Doctor') {

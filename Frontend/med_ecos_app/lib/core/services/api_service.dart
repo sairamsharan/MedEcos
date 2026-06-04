@@ -441,4 +441,59 @@ class ApiService {
       throw Exception('Network error: $e');
     }
   }
+
+  Future<void> processLabTest(String abhaId, String testName, String prescriptionId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/api/v1/lab_tester/patients/$abhaId/process-test'),
+        headers: headers,
+        body: jsonEncode({
+          'testName': testName,
+          'prescriptionId': prescriptionId,
+        }),
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to process lab test: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<void> updateLabTestStatus(String orderId, String status) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.put(
+        Uri.parse('http://localhost:5000/api/v1/lab_tester/orders/$orderId/status'),
+        headers: headers,
+        body: jsonEncode({
+          'status': status,
+        }),
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update lab test status: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Patient Lab Orders
+  Future<List<dynamic>> getPatientLabOrders() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('http://localhost:5000/api/v1/patient/lab-test-orders'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to load lab orders: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
 }

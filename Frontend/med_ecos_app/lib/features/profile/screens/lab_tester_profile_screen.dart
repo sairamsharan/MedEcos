@@ -2,8 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/login_screen.dart';
+import '../../../core/widgets/location_picker_screen.dart';
+import 'package:latlong2/latlong.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,7 +21,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _testNameController = TextEditingController();
+  final TextEditingController _latController = TextEditingController();
+  final TextEditingController _lngController = TextEditingController();
   List<String> _labTestsProvided = [];
+  bool _isLocating = false;
 
   @override
   void initState() {
@@ -39,6 +45,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _profile = jsonDecode(res.body);
             _addressController.text = _profile?['address'] ?? '';
+            _latController.text = (_profile?['location']?['lat'] ?? '').toString();
+            _lngController.text = (_profile?['location']?['lng'] ?? '').toString();
+            if (_latController.text == '0' || _latController.text == 'null') _latController.text = '';
+            if (_lngController.text == '0' || _lngController.text == 'null') _lngController.text = '';
             _labTestsProvided = List<String>.from(_profile?['labTestsProvided'] ?? []);
             _loading = false;
           });
@@ -56,19 +66,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       
+      final body = <String, dynamic>{
+        'address': _addressController.text,
+        'labTestsProvided': _labTestsProvided,
+      };
+
+      final lat = double.tryParse(_latController.text);
+      final lng = double.tryParse(_lngController.text);
+      if (lat != null && lng != null) {
+        body['location'] = {'lat': lat, 'lng': lng};
+      }
+
       final res = await http.put(
         Uri.parse('http://localhost:5000/api/auth/profile'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'address': _addressController.text,
-          'labTestsProvided': _labTestsProvided,
-        }),
+        body: jsonEncode(body),
       );
       if (res.statusCode == 200) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _detectLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location services are disabled.')));
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permission denied.')));
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are permanently denied.')));
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      setState(() {
+        _latController.text = pos.latitude.toStringAsFixed(6);
+        _lngController.text = pos.longitude.toStringAsFixed(6);
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not detect location: $e')));
+    } finally {
+      setState(() => _isLocating = false);
     }
   }
 
@@ -96,6 +146,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextField(
               controller: _addressController,
               decoration: const InputDecoration(labelText: 'Address/Lab Name', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _latController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Latitude',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _lngController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Longitude',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLocating ? null : _detectLocation,
+                    icon: _isLocating
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.my_location),
+                    label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      LatLng? current;
+                      if (_latController.text.isNotEmpty && _lngController.text.isNotEmpty) {
+                        current = LatLng(double.parse(_latController.text), double.parse(_lngController.text));
+                      }
+                      final LatLng? picked = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => LocationPickerScreen(initialLocation: current)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _latController.text = picked.latitude.toString();
+                          _lngController.text = picked.longitude.toString();
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.map),
+                    label: const Text('Choose from Map'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             const Align(

@@ -4,6 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/login_screen.dart';
+import '../../../core/widgets/location_picker_screen.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _latController = TextEditingController();
+  final TextEditingController _lngController = TextEditingController();
+  bool _isLocating = false;
 
   String _morningTime = '08:00 AM';
   String _afternoonTime = '01:00 PM';
@@ -41,6 +47,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _profile = jsonDecode(res.body);
             _addressController.text = _profile?['address'] ?? '';
+            if (_profile?['location'] != null) {
+              _latController.text = _profile!['location']['lat']?.toString() ?? '';
+              _lngController.text = _profile!['location']['lng']?.toString() ?? '';
+            }
             final routine = _profile?['routine'];
             if (routine != null) {
               _morningTime = routine['morning'] ?? '08:00 AM';
@@ -68,6 +78,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
         body: jsonEncode({
           'address': _addressController.text,
+          'location': {
+            'lat': double.tryParse(_latController.text) ?? 0.0,
+            'lng': double.tryParse(_lngController.text) ?? 0.0,
+          },
           'routine': {
             'morning': _morningTime,
             'afternoon': _afternoonTime,
@@ -81,6 +95,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _detectLocation() async {
+    setState(() => _isLocating = true);
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _latController.text = position.latitude.toString();
+        _lngController.text = position.longitude.toString();
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not get location: $e')));
+    } finally {
+      setState(() => _isLocating = false);
     }
   }
 
@@ -117,11 +146,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildTimeSelector('Evening / Snacks', _eveningTime, (t) => setState(() => _eveningTime = t)),
             _buildTimeSelector('Night / Dinner', _nightTime, (t) => setState(() => _nightTime = t)),
             const SizedBox(height: 24),
+            const Align(alignment: Alignment.centerLeft, child: Text('Location & Address', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+            const SizedBox(height: 16),
             TextField(
               controller: _addressController,
               decoration: const InputDecoration(labelText: 'Address', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: TextField(controller: _latController, decoration: const InputDecoration(labelText: 'Latitude', border: OutlineInputBorder()))),
+                const SizedBox(width: 16),
+                Expanded(child: TextField(controller: _lngController, decoration: const InputDecoration(labelText: 'Longitude', border: OutlineInputBorder()))),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLocating ? null : _detectLocation,
+                    icon: _isLocating
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.my_location),
+                    label: Text(_isLocating ? 'Detecting...' : 'Use My Location'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      LatLng? current;
+                      if (_latController.text.isNotEmpty && _lngController.text.isNotEmpty) {
+                        current = LatLng(double.parse(_latController.text), double.parse(_lngController.text));
+                      }
+                      final LatLng? picked = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => LocationPickerScreen(initialLocation: current)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _latController.text = picked.latitude.toString();
+                          _lngController.text = picked.longitude.toString();
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.map),
+                    label: const Text('Choose from Map'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _updateProfile,
               child: const Text('Save Profile'),
