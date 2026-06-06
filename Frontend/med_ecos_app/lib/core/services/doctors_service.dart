@@ -30,7 +30,7 @@ class DoctorsService {
     double? userLng,
   }) async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5000/api/public/doctors'));
+      final response = await http.get(Uri.parse('https://medecos.onrender.com/api/public/doctors'));
       if (response.statusCode != 200) {
         throw Exception('Failed to load doctors');
       }

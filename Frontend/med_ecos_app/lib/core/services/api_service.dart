@@ -13,7 +13,7 @@ class ApiService {
   Future<String> get _baseUrl async {
     final prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('user_role') ?? 'Patient';
-    return 'http://localhost:5000/api/v1/${role.toLowerCase()}';
+    return 'https://medecos.onrender.com/api/v1/${role.toLowerCase()}';
   }
 
   Future<Map<String, String>> _getHeaders() async {
@@ -343,9 +343,9 @@ class ApiService {
     // Only Doctor or Pharmacist can update notes
     String route = '';
     if (role == 'Doctor') {
-      route = 'http://localhost:5000/api/v1/doctor/prescriptions/$id/notes';
+      route = 'https://medecos.onrender.com/api/v1/doctor/prescriptions/$id/notes';
     } else if (role == 'Pharmacist') {
-      route = 'http://localhost:5000/api/v1/pharmacist/prescriptions/$id/notes';
+      route = 'https://medecos.onrender.com/api/v1/pharmacist/prescriptions/$id/notes';
     } else {
       throw Exception("Unauthorized to update notes");
     }
@@ -429,7 +429,7 @@ class ApiService {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/v1/lab_tester/patients/$abhaId/lab-tests'),
+        Uri.parse('https://medecos.onrender.com/api/v1/lab_tester/patients/$abhaId/lab-tests'),
         headers: headers,
       );
       if (response.statusCode == 200) {
@@ -446,7 +446,7 @@ class ApiService {
     try {
       final headers = await _getHeaders();
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/v1/lab_tester/patients/$abhaId/process-test'),
+        Uri.parse('https://medecos.onrender.com/api/v1/lab_tester/patients/$abhaId/process-test'),
         headers: headers,
         body: jsonEncode({
           'testName': testName,
@@ -465,7 +465,7 @@ class ApiService {
     try {
       final headers = await _getHeaders();
       final response = await http.put(
-        Uri.parse('http://localhost:5000/api/v1/lab_tester/orders/$orderId/status'),
+        Uri.parse('https://medecos.onrender.com/api/v1/lab_tester/orders/$orderId/status'),
         headers: headers,
         body: jsonEncode({
           'status': status,
@@ -484,7 +484,7 @@ class ApiService {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/v1/patient/lab-test-orders'),
+        Uri.parse('https://medecos.onrender.com/api/v1/patient/lab-test-orders'),
         headers: headers,
       );
       if (response.statusCode == 200) {

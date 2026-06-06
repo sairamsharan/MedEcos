@@ -29,7 +29,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final response = await http.get(
-        Uri.parse('http://localhost:5000/api/v1/doctor/appointments'),
+        Uri.parse('https://medecos.onrender.com/api/v1/doctor/appointments'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -62,7 +62,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/v1/doctor/appointments/$id/accept'),
+        Uri.parse('https://medecos.onrender.com/api/v1/doctor/appointments/$id/accept'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -138,7 +138,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       final token = prefs.getString('jwt_token') ?? '';
                       
                       final response = await http.post(
-                        Uri.parse('http://localhost:5000/api/v1/doctor/appointments/$id/reschedule'),
+                        Uri.parse('https://medecos.onrender.com/api/v1/doctor/appointments/$id/reschedule'),
                         headers: {
                           'Content-Type': 'application/json',
                           'Authorization': 'Bearer $token',

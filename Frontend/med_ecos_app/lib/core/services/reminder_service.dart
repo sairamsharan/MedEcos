@@ -34,7 +34,7 @@ class ReminderService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
     final res = await http.get(
-      Uri.parse('http://localhost:5000/api/auth/me'),
+      Uri.parse('https://medecos.onrender.com/api/auth/me'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (res.statusCode == 200) {

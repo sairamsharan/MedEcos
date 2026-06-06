@@ -86,7 +86,7 @@ class _SignupScreenState extends State<SignupScreen> {
       }
 
       final response = await http.post(
-        Uri.parse('http://localhost:5000/api/auth/register'),
+        Uri.parse('https://medecos.onrender.com/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
