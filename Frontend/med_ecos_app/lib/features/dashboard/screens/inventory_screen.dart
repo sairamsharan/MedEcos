@@ -138,7 +138,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Row(
                                 children: [
-                                  Text("Price: \$${item.price.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w500)),
+                                  Text("Price: ₹${item.price.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w500)),
                                   const SizedBox(width: 16),
                                   if (item.expiryDate != null)
                                     Text("Expires: ${item.expiryDate!.toLocal().toString().split(' ')[0]}"),
@@ -194,7 +194,7 @@ class _AddInventorySheetState extends State<AddInventorySheet> {
 
   Future<void> _fetchMedicines() async {
     try {
-      final response = await http.get(Uri.parse('https://medecos.onrender.com/api/public/medicines'));
+      final response = await http.get(Uri.parse('http://localhost:5000/api/public/medicines'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         if (mounted) {
@@ -309,7 +309,7 @@ class _AddInventorySheetState extends State<AddInventorySheet> {
                   controller: _priceController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
-                    labelText: 'Price per item (\$)',
+                    labelText: 'Price per item (₹)',
                     border: OutlineInputBorder(),
                   ),
                 ),

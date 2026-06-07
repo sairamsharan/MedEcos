@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../utils/constants.dart';
 import '../models/doctor_model.dart';
 
 class DoctorsService {
@@ -30,7 +31,7 @@ class DoctorsService {
     double? userLng,
   }) async {
     try {
-      final response = await http.get(Uri.parse('https://medecos.onrender.com/api/public/doctors'));
+      final response = await http.get(Uri.parse('${AppConstants.apiBaseUrl}/api/public/doctors'));
       if (response.statusCode != 200) {
         throw Exception('Failed to load doctors');
       }

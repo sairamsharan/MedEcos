@@ -19,15 +19,15 @@ router.post('/register', async (req, res) => {
         }
 
         // Validate Role
-        const validRoles = ['Doctor', 'Patient', 'Pharmacist', 'Lab_Tester'];
+        const validRoles = ['Doctor', 'Patient', 'Pharmacist', 'Pathologist'];
         if (!validRoles.includes(role)) {
             return res.status(400).json({ message: 'Invalid role' });
         }
 
-        // Validate location for Doctor and Lab_Tester role
-        if (role === 'Doctor' || role === 'Lab_Tester') {
+        // Validate location for Doctor and Pathologist role
+        if (role === 'Doctor' || role === 'Pathologist') {
             if (!location || !location.lat || !location.lng) {
-                return res.status(400).json({ message: 'Location (lat/lng) is mandatory for Doctors and Lab Testers' });
+                return res.status(400).json({ message: 'Location (lat/lng) is mandatory for Doctors and Pathologists' });
             }
         }
 
@@ -78,8 +78,8 @@ router.post('/register', async (req, res) => {
             abhaId: role === 'Patient' ? abhaId : undefined,
             publicKey, // Will be undefined if not Doctor
             privateKey, // Will be undefined if not Doctor
-            location: (role === 'Doctor' || role === 'Lab_Tester') ? location : undefined,
-            address: (role === 'Doctor' || role === 'Lab_Tester') ? address : undefined,
+            location: (role === 'Doctor' || role === 'Pathologist') ? location : undefined,
+            address: (role === 'Doctor' || role === 'Pathologist') ? address : undefined,
             speciality: role === 'Doctor' ? speciality : undefined,
             age: (role === 'Patient' && age) ? age : undefined,
             gender: (role === 'Patient' && gender) ? gender : undefined,
@@ -335,8 +335,8 @@ router.put('/profile', protect, async (req, res) => {
             if (req.body.hospital !== undefined) user.hospital = req.body.hospital;
         }
 
-        // Lab Tester specific fields
-        if (user.role === 'Lab_Tester') {
+        // Pathologist specific fields
+        if (user.role === 'Pathologist') {
             if (req.body.labTestsProvided !== undefined) user.labTestsProvided = req.body.labTestsProvided;
         }
 

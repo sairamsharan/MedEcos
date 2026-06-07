@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/constants.dart';
 import 'api_service.dart';
 import 'package:intl/intl.dart';
 import '../utils/medicine_utils.dart';
@@ -34,7 +35,7 @@ class ReminderService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
     final res = await http.get(
-      Uri.parse('https://medecos.onrender.com/api/auth/me'),
+      Uri.parse('${AppConstants.apiBaseUrl}/api/auth/me'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (res.statusCode == 200) {

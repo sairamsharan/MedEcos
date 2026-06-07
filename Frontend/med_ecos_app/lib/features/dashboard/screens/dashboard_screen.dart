@@ -34,11 +34,12 @@ import '../../../features/profile/screens/doctor_profile_screen.dart' as doctor_
 import '../../../features/prescription/screens/pharmacist_prescription_list_screen.dart' as pharmacist_prescription;
 import '../../../features/patient_lookup/screens/pharmacist_patient_lookup_screen.dart' as pharmacist_patient_lookup;
 import '../../../features/dashboard/screens/inventory_screen.dart';
+import '../../../features/billing/screens/pharmacist_billing_screen.dart';
 import '../../../features/profile/screens/pharmacist_profile_screen.dart' as pharmacist_profile;
 
-// Lab Tester Screens
-import '../../../features/patient_lookup/screens/lab_tester_lookup_screen.dart' as lab_tester_lookup;
-import '../../../features/profile/screens/lab_tester_profile_screen.dart' as lab_tester_profile;
+// Pathologist Screens
+import '../../../features/patient_lookup/screens/pathologist_lookup_screen.dart' as pathologist_lookup;
+import '../../../features/profile/screens/pathologist_profile_screen.dart' as pathologist_profile;
 import '../../../features/lab_tests/screens/lab_orders_screen.dart';
 import '../../../features/lab_tests/screens/lab_locations_map_screen.dart';
 
@@ -135,7 +136,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final ordersRes = await http.get(
-        Uri.parse('https://medecos.onrender.com/api/v1/patient/lab-test-orders'),
+        Uri.parse('http://localhost:5000/api/v1/patient/lab-test-orders'),
         headers: {'Authorization': 'Bearer $token'},
       );
       List<dynamic> labOrders = [];
@@ -215,15 +216,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         case 1: return const pharmacist_prescription.PrescriptionListScreen();
         case 2: return const pharmacist_patient_lookup.PatientLookupScreen();
         case 3: return const InventoryScreen();
-        case 4: return const pharmacist_profile.ProfileScreen();
+        case 4: return const PharmacistBillingScreen();
+        case 5: return const pharmacist_profile.ProfileScreen();
         default: return const Center(child: Text("Coming Soon"));
       }
-    } else if (_userRole == 'Lab_Tester') {
+    } else if (_userRole == 'Pathologist') {
       switch (_selectedIndex) {
         case 0: return _buildProDashboard();
-        case 1: return const lab_tester_lookup.LabTesterLookupScreen();
+        case 1: return const pathologist_lookup.PathologistLookupScreen();
         case 2: return const LabOrdersScreen();
-        case 3: return const lab_tester_profile.ProfileScreen();
+        case 3: return const pathologist_profile.ProfileScreen();
         default: return const Center(child: Text("Coming Soon"));
       }
     }
@@ -358,7 +360,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: ListTile(
                   leading: const CircleAvatar(backgroundColor: Colors.deepOrangeAccent, child: Icon(Icons.biotech, color: Colors.white)),
                   title: Text(order['testName'] ?? 'Unknown Test'),
-                  subtitle: Text("Lab: ${order['labTesterId']?['username'] ?? 'Unknown'}"),
+                  subtitle: Text("Lab: ${order['pathologistId']?['username'] ?? 'Unknown'}"),
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(

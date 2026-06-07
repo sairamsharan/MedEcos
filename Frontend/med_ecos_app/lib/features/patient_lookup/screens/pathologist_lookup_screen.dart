@@ -7,14 +7,14 @@ import 'package:flutter/services.dart';
 import '../../../../core/utils/abha_formatter.dart';
 import 'lab_tests_list_screen.dart';
 
-class LabTesterLookupScreen extends StatefulWidget {
-  const LabTesterLookupScreen({super.key});
+class PathologistLookupScreen extends StatefulWidget {
+  const PathologistLookupScreen({super.key});
 
   @override
-  State<LabTesterLookupScreen> createState() => _LabTesterLookupScreenState();
+  State<PathologistLookupScreen> createState() => _PathologistLookupScreenState();
 }
 
-class _LabTesterLookupScreenState extends State<LabTesterLookupScreen> {
+class _PathologistLookupScreenState extends State<PathologistLookupScreen> {
   final TextEditingController _abhaController = TextEditingController();
   bool _isLoading = false;
   List<String> _mostVisited = [];
@@ -27,7 +27,7 @@ class _LabTesterLookupScreenState extends State<LabTesterLookupScreen> {
 
   Future<void> _loadMostVisited() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString('lab_tester_most_visited');
+    final jsonStr = prefs.getString('pathologist_most_visited');
     if (jsonStr != null) {
       final Map<String, dynamic> data = jsonDecode(jsonStr);
       final List<MapEntry<String, dynamic>> sorted = data.entries.toList()
@@ -40,13 +40,13 @@ class _LabTesterLookupScreenState extends State<LabTesterLookupScreen> {
 
   Future<void> _recordVisit(String abhaId) async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString('lab_tester_most_visited');
+    final jsonStr = prefs.getString('pathologist_most_visited');
     Map<String, dynamic> data = {};
     if (jsonStr != null) {
       data = jsonDecode(jsonStr);
     }
     data[abhaId] = (data[abhaId] ?? 0) + 1;
-    await prefs.setString('lab_tester_most_visited', jsonEncode(data));
+    await prefs.setString('pathologist_most_visited', jsonEncode(data));
     _loadMostVisited();
   }
 

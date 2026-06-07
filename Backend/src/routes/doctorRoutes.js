@@ -4,6 +4,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 const Prescription = require('../models/Prescription');
 const User = require('../models/User');
 const Appointment = require('../models/Appointment');
+const abhaController = require('../controllers/abhaController');
 
 const crypto = require('crypto');
 
@@ -38,7 +39,8 @@ router.post('/prescriptions', protect, authorize('Doctor'), async (req, res) => 
             diagnosis,
             medicines,
             labTests,
-            digitalSignature
+            digitalSignature,
+            signaturePayload: payload
         });
 
         // Mark the active appointment as Finished
@@ -75,64 +77,7 @@ router.get('/patients/:abhaId', protect, authorize('Doctor'), async (req, res) =
 });
 
 // Register Patient via ABHA OTP
-router.post('/patients/abha-register', protect, authorize('Doctor'), async (req, res) => {
-    try {
-        const { transactionId, otp, abhaId } = req.body;
-
-        if (!transactionId || !otp || !abhaId) {
-            return res.status(400).json({ message: 'All fields are required' });
-        }
-
-        const Otp = require('../models/Otp');
-        
-        // Verify OTP
-        let otpDoc = null;
-        if (transactionId === 'txn-mock') {
-            if (otp !== '123456') {
-                return res.status(400).json({ message: 'Invalid OTP' });
-            }
-        } else {
-            otpDoc = await Otp.findOne({ transactionId, abhaId });
-            if (!otpDoc || otpDoc.otp !== otp) {
-                return res.status(400).json({ message: 'Invalid OTP or transaction expired' });
-            }
-        }
-
-        // Check if user exists
-        let user = await User.findOne({ abhaId });
-
-        if (!user) {
-            const MockABDMUser = require('../models/MockABDMUser');
-            const abdmData = await MockABDMUser.findOne({ abhaId });
-            
-            user = await User.create({
-                abhaId,
-                role: 'Patient',
-                username: abdmData ? abdmData.name : `patient_${abhaId.replace(/-/g, '')}`,
-                age: abdmData ? abdmData.age : undefined,
-                gender: abdmData ? abdmData.gender : undefined,
-            });
-        }
-
-        if (otpDoc) {
-            await Otp.deleteOne({ _id: otpDoc._id });
-        }
-
-        // Track this patient in the doctor's document
-        const provider = await User.findById(req.user.id);
-        if (provider && !provider.patients.includes(abhaId)) {
-            provider.patients.push(abhaId);
-            await provider.save();
-        }
-
-        // Return the patient data
-        res.json(user);
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: error.message || 'Server error' });
-    }
-});
+router.post('/patients/abha-register', protect, authorize('Doctor'), abhaController.registerPatientViaAbha);
 // Get Patient Prescriptions
 router.get('/prescriptions/:abhaId', protect, authorize('Doctor'), async (req, res) => {
     try {
@@ -223,7 +168,7 @@ router.get('/dashboard-stats', protect, authorize('Doctor'), async (req, res) =>
 // Get all appointments for a doctor
 router.get('/appointments', protect, authorize('Doctor'), async (req, res) => {
     try {
-        const appointments = await Appointment.find({ doctorId: req.user.id }).sort({ date: 1 });
+        const appointments = await Appointment.find({ doctorId: req.user.id }).sort({ date: -1 });
         res.json(appointments);
     } catch (error) {
         console.error(error);

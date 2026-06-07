@@ -3,6 +3,8 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
 const Prescription = require('../models/Prescription');
 const User = require('../models/User');
+const Inventory = require('../models/Inventory');
+const abhaController = require('../controllers/abhaController');
 
 // Get Dashboard Stats
 router.get('/dashboard-stats', protect, authorize('Pharmacist'), async (req, res) => {
@@ -30,64 +32,7 @@ router.get('/dashboard-stats', protect, authorize('Pharmacist'), async (req, res
 });
 
 // Register Patient via ABHA OTP (Pharmacist)
-router.post('/patients/abha-register', protect, authorize('Pharmacist'), async (req, res) => {
-    try {
-        const { transactionId, otp, abhaId } = req.body;
-
-        if (!transactionId || !otp || !abhaId) {
-            return res.status(400).json({ message: 'All fields are required' });
-        }
-
-        const Otp = require('../models/Otp');
-        
-        // Verify OTP
-        let otpDoc = null;
-        if (transactionId === 'txn-mock') {
-            if (otp !== '123456') {
-                return res.status(400).json({ message: 'Invalid OTP' });
-            }
-        } else {
-            otpDoc = await Otp.findOne({ transactionId, abhaId });
-            if (!otpDoc || otpDoc.otp !== otp) {
-                return res.status(400).json({ message: 'Invalid OTP or transaction expired' });
-            }
-        }
-
-        // Check if user exists
-        let user = await User.findOne({ abhaId });
-
-        if (!user) {
-            const MockABDMUser = require('../models/MockABDMUser');
-            const abdmData = await MockABDMUser.findOne({ abhaId });
-            
-            user = await User.create({
-                abhaId,
-                role: 'Patient',
-                username: abdmData ? abdmData.name : `patient_${abhaId.replace(/-/g, '')}`,
-                age: abdmData ? abdmData.age : undefined,
-                gender: abdmData ? abdmData.gender : undefined,
-            });
-        }
-
-        if (otpDoc) {
-            await Otp.deleteOne({ _id: otpDoc._id });
-        }
-
-        // Track this patient in the pharmacist's document
-        const provider = await User.findById(req.user.id);
-        if (provider && !provider.patients.includes(abhaId)) {
-            provider.patients.push(abhaId);
-            await provider.save();
-        }
-
-        // Return the patient data
-        res.json(user);
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: error.message || 'Server error' });
-    }
-});
+router.post('/patients/abha-register', protect, authorize('Pharmacist'), abhaController.registerPatientViaAbha);
 
 // Get Pharmacist's Patients
 router.get('/patients', protect, authorize('Pharmacist'), async (req, res) => {
@@ -136,7 +81,6 @@ router.put('/prescriptions/:id/notes', protect, authorize('Pharmacist'), async (
 // Get Inventory
 router.get('/inventory', protect, authorize('Pharmacist'), async (req, res) => {
     try {
-        const Inventory = require('../models/Inventory');
         const inventory = await Inventory.find({ pharmacistId: req.user.id }).sort({ medicineName: 1 });
         res.json(inventory);
     } catch (error) {
@@ -148,7 +92,6 @@ router.get('/inventory', protect, authorize('Pharmacist'), async (req, res) => {
 // Add or Update Inventory Item
 router.post('/inventory', protect, authorize('Pharmacist'), async (req, res) => {
     try {
-        const Inventory = require('../models/Inventory');
         const { medicineName, quantity, price, expiryDate } = req.body;
 
         if (!medicineName || quantity === undefined || price === undefined) {
@@ -182,6 +125,47 @@ router.post('/inventory', protect, authorize('Pharmacist'), async (req, res) => 
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+const Bill = require('../models/Bill');
+
+// Generate Bill
+router.post('/bills', protect, authorize('Pharmacist'), async (req, res) => {
+    try {
+        const { abhaId, patientName, prescriptionId, medicines, grandTotal } = req.body;
+
+        if (!medicines || medicines.length === 0) {
+            return res.status(400).json({ message: 'No medicines provided for billing' });
+        }
+
+        // Deduct inventory
+        for (let item of medicines) {
+            const inventoryItem = await Inventory.findOne({ 
+                pharmacistId: req.user.id, 
+                medicineName: item.medicineName 
+            });
+
+            if (inventoryItem) {
+                inventoryItem.quantity -= item.quantity;
+                if (inventoryItem.quantity < 0) inventoryItem.quantity = 0;
+                await inventoryItem.save();
+            }
+        }
+
+        const newBill = await Bill.create({
+            pharmacistId: req.user.id,
+            abhaId,
+            patientName: patientName || 'Guest Patient',
+            prescriptionId,
+            medicines,
+            grandTotal
+        });
+
+        res.status(201).json(newBill);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error while creating bill' });
     }
 });
 

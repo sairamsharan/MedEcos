@@ -134,7 +134,7 @@ router.get('/history', protect, authorize('Patient'), async (req, res) => {
 router.get('/appointments', protect, authorize('Patient'), async (req, res) => {
     try {
         const abhaId = req.user.abhaId;
-        const appointments = await Appointment.find({ abhaId }).populate('doctorId', 'username speciality').sort({ date: 1 });
+        const appointments = await Appointment.find({ abhaId }).populate('doctorId', 'username speciality').sort({ date: -1 });
         res.json(appointments);
     } catch (error) {
         console.error(error);
@@ -192,7 +192,7 @@ router.post('/appointments/:id/accept-reschedule', protect, authorize('Patient')
 // Get Lab Locations
 router.get('/labs', protect, authorize('Patient'), async (req, res) => {
     try {
-        const labs = await User.find({ role: 'Lab_Tester' }).select('username location address labTestsProvided');
+        const labs = await User.find({ role: 'Pathologist' }).select('username location address labTestsProvided');
         res.json(labs);
     } catch (error) {
         console.error(error);
@@ -203,13 +203,13 @@ router.get('/labs', protect, authorize('Patient'), async (req, res) => {
 // Book a Lab Test
 router.post('/lab-test-orders', protect, authorize('Patient'), async (req, res) => {
     try {
-        const { labTesterId, testName } = req.body;
-        if (!labTesterId || !testName) return res.status(400).json({ message: 'labTesterId and testName are required' });
+        const { pathologistId, testName } = req.body;
+        if (!pathologistId || !testName) return res.status(400).json({ message: 'pathologistId and testName are required' });
 
         const order = await LabTestOrder.create({
             patientId: req.user._id,
             patientName: req.user.username,
-            labTesterId,
+            pathologistId,
             testName,
             status: 'Pending'
         });
@@ -223,7 +223,7 @@ router.post('/lab-test-orders', protect, authorize('Patient'), async (req, res) 
 // Get Patient's Lab Test Orders
 router.get('/lab-test-orders', protect, authorize('Patient'), async (req, res) => {
     try {
-        const orders = await LabTestOrder.find({ patientId: req.user._id }).populate('labTesterId', 'username').sort({ createdAt: -1 });
+        const orders = await LabTestOrder.find({ patientId: req.user._id }).populate('pathologistId', 'username').sort({ createdAt: -1 });
         res.json(orders);
     } catch (error) {
         console.error(error);

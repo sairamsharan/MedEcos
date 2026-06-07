@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:file_picker/file_picker.dart';
 
 class LabOrdersScreen extends StatefulWidget {
   const LabOrdersScreen({super.key});
@@ -27,7 +28,7 @@ class _LabOrdersScreenState extends State<LabOrdersScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final res = await http.get(
-        Uri.parse('https://medecos.onrender.com/api/v1/lab_tester/orders'),
+        Uri.parse('http://localhost:5000/api/v1/pathologist/orders'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -52,7 +53,7 @@ class _LabOrdersScreenState extends State<LabOrdersScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final res = await http.put(
-        Uri.parse('https://medecos.onrender.com/api/v1/lab_tester/orders/$orderId/status'),
+        Uri.parse('http://localhost:5000/api/v1/pathologist/orders/$orderId/status'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'
@@ -68,6 +69,47 @@ class _LabOrdersScreenState extends State<LabOrdersScreen> {
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _markCompletedWithPdf(String orderId) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        setState(() => _loading = true);
+        String base64Pdf = base64Encode(result.files.single.bytes!);
+        
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('jwt_token') ?? '';
+        
+        final res = await http.put(
+          Uri.parse('http://localhost:5000/api/v1/pathologist/orders/$orderId/status'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json'
+          },
+          body: jsonEncode({
+            'status': 'Completed',
+            'reportPdf': base64Pdf
+          })
+        );
+        
+        if (res.statusCode == 200) {
+          _fetchOrders();
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report uploaded and marked as completed')));
+        } else {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to upload report')));
+          setState(() => _loading = false);
+        }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      setState(() => _loading = false);
     }
   }
 
@@ -143,8 +185,8 @@ class _LabOrdersScreenState extends State<LabOrdersScreen> {
                             if (status == 'In_Progress')
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                                onPressed: () => _updateStatus(order['_id'], 'Completed'),
-                                child: const Text("Mark Completed")
+                                onPressed: () => _markCompletedWithPdf(order['_id']),
+                                child: const Text("Upload PDF & Complete")
                               ),
                           ],
                         )

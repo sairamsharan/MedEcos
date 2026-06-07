@@ -25,24 +25,11 @@ router.get('/verify-prescription/:id', async (req, res) => {
             return res.status(404).json({ message: 'Doctor or public key not found for verification' });
         }
 
-        // Reconstruct the exact same payload used during signing
-        // Note: The structure here MUST exactly match the structure used in doctorRoutes.js
-        // If the structure changes over time, versioning of the payload might be required,
-        // but for now we expect the direct reconstruction to work.
-        const payload = JSON.stringify({
-            abhaId: prescription.abhaId,
-            diagnosis: prescription.diagnosis,
-            // When Mongoose returns an array of embedded documents, it often includes an _id.
-            // We need to map it back to the clean structure used during the signing process.
-            medicines: prescription.medicines.map(m => {
-                const med = { name: m.name };
-                if (m.frequency) med.frequency = m.frequency;
-                if (m.duration) med.duration = m.duration;
-                if (m.medicineId) med.medicineId = m.medicineId;
-                return med;
-            }),
-            labTests: prescription.labTests
-        });
+        if (!prescription.signaturePayload) {
+            return res.status(400).json({ message: 'Prescription does not have a signature payload to verify against.' });
+        }
+        
+        const payload = prescription.signaturePayload;
 
         // Verify the signature
         const verify = crypto.createVerify('SHA256');

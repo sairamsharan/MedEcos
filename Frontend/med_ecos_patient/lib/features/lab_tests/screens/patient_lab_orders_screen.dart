@@ -123,8 +123,8 @@ class _PatientLabOrdersScreenState extends State<PatientLabOrdersScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (order['labTesterId'] != null)
-                            Text("Lab: ${order['labTesterId']['username'] ?? 'Unknown'}"),
+                          if (order['pathologistId'] != null)
+                            Text("Lab: ${order['pathologistId']['username'] ?? 'Unknown'}"),
                           Text("Date: $dateStr"),
                         ],
                       ),

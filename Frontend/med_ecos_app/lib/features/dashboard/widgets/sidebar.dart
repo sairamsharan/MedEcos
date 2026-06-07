@@ -44,10 +44,11 @@ class Sidebar extends StatelessWidget {
         _NavItem(icon: Icons.receipt, label: "Prescriptions", isSelected: selectedIndex == 1, onTap: () => onItemSelected(1)),
         _NavItem(icon: Icons.search, label: "Lookup", isSelected: selectedIndex == 2, onTap: () => onItemSelected(2)),
         _NavItem(icon: Icons.inventory, label: "Inventory", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
+        _NavItem(icon: Icons.point_of_sale, label: "Billing", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
         const Spacer(),
-        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
+        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 5, onTap: () => onItemSelected(5)),
       ];
-    } else if (userRole == 'Lab_Tester') {
+    } else if (userRole == 'Pathologist') {
       items = [
         _NavItem(icon: Icons.dashboard, label: "Dashboard", isSelected: selectedIndex == 0, onTap: () => onItemSelected(0)),
         _NavItem(icon: Icons.search, label: "Lookup", isSelected: selectedIndex == 1, onTap: () => onItemSelected(1)),

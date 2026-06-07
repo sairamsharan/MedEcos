@@ -40,7 +40,7 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    if (_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') {
+    if (_selectedRole == 'Doctor' || _selectedRole == 'Pathologist') {
       if (_latController.text.isEmpty || _lngController.text.isEmpty || _addressController.text.isEmpty) {
         setState(() {
           _errorMessage = 'Location and Address are mandatory for ${_selectedRole}s.';
@@ -74,7 +74,7 @@ class _SignupScreenState extends State<SignupScreen> {
         body['abhaId'] = _abhaController.text;
         if (_ageController.text.isNotEmpty) body['age'] = int.tryParse(_ageController.text);
         if (_selectedGender != null) body['gender'] = _selectedGender;
-      } else if (_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') {
+      } else if (_selectedRole == 'Doctor' || _selectedRole == 'Pathologist') {
         body['location'] = {
           'lat': double.tryParse(_latController.text) ?? 0.0,
           'lng': double.tryParse(_lngController.text) ?? 0.0,
@@ -86,7 +86,7 @@ class _SignupScreenState extends State<SignupScreen> {
       }
 
       final response = await http.post(
-        Uri.parse('https://medecos.onrender.com/api/auth/register'),
+        Uri.parse('http://localhost:5000/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
@@ -192,7 +192,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     labelText: 'Role',
                     border: OutlineInputBorder(),
                   ),
-                  items: ['Patient', 'Doctor', 'Pharmacist', 'Lab_Tester'].map((role) {
+                  items: ['Patient', 'Doctor', 'Pharmacist', 'Pathologist'].map((role) {
                     return DropdownMenuItem(value: role, child: Text(role.replaceAll('_', ' ')));
                   }).toList(),
                   onChanged: (val) {
@@ -249,7 +249,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                if (_selectedRole == 'Doctor' || _selectedRole == 'Lab_Tester') ...[
+                if (_selectedRole == 'Doctor' || _selectedRole == 'Pathologist') ...[
                   if (_selectedRole == 'Doctor') ...[
                     TextField(
                       controller: _specialityController,

@@ -10,7 +10,7 @@ const labTestOrderSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    labTesterId: {
+    pathologistId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -34,6 +34,12 @@ const labTestOrderSchema = new mongoose.Schema({
     },
     dateCompleted: {
         type: Date
+    },
+    notes: {
+        type: String
+    },
+    reportPdf: {
+        type: String // Base64 encoded PDF
     }
 }, { timestamps: true });
 

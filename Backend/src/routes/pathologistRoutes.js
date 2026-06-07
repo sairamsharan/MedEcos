@@ -6,7 +6,7 @@ const User = require('../models/User');
 const LabTestOrder = require('../models/LabTestOrder');
 
 // Get Lab Tests for a Patient (Lookup by ABHA ID)
-router.get('/patients/:abhaId/lab-tests', protect, authorize('Lab_Tester'), async (req, res) => {
+router.get('/patients/:abhaId/lab-tests', protect, authorize('Pathologist'), async (req, res) => {
     try {
         const { abhaId } = req.params;
         
@@ -65,7 +65,7 @@ router.get('/patients/:abhaId/lab-tests', protect, authorize('Lab_Tester'), asyn
 });
 
 // Process a Lab Test (Create or Update LabTestOrder to In_Progress)
-router.post('/patients/:abhaId/process-test', protect, authorize('Lab_Tester'), async (req, res) => {
+router.post('/patients/:abhaId/process-test', protect, authorize('Pathologist'), async (req, res) => {
     try {
         const { abhaId } = req.params;
         const { testName, prescriptionId } = req.body;
@@ -91,24 +91,24 @@ router.post('/patients/:abhaId/process-test', protect, authorize('Lab_Tester'), 
                 return res.status(400).json({ message: 'Test already completed' });
             }
             order.status = 'In_Progress';
-            order.labTesterId = req.user._id; // Take ownership
+            order.pathologistId = req.user._id; // Take ownership
             await order.save();
         } else {
             order = await LabTestOrder.create({
                 patientId: patient._id,
                 patientName: patient.username || 'Unknown Patient',
-                labTesterId: req.user._id,
+                pathologistId: req.user._id,
                 testName,
                 prescriptionId,
                 status: 'In_Progress'
             });
         }
 
-        // Check if the lab tester already provides this test, if not, add it
-        const labTester = await User.findById(req.user._id);
-        if (labTester && !labTester.labTestsProvided.includes(testName)) {
-            labTester.labTestsProvided.push(testName);
-            await labTester.save();
+        // Check if the pathologist already provides this test, if not, add it
+        const pathologist = await User.findById(req.user._id);
+        if (pathologist && !pathologist.labTestsProvided.includes(testName)) {
+            pathologist.labTestsProvided.push(testName);
+            await pathologist.save();
         }
 
         res.json(order);
@@ -118,10 +118,10 @@ router.post('/patients/:abhaId/process-test', protect, authorize('Lab_Tester'), 
     }
 });
 
-// Get Lab Test Orders for this Lab Tester
-router.get('/orders', protect, authorize('Lab_Tester'), async (req, res) => {
+// Get Lab Test Orders for this Pathologist
+router.get('/orders', protect, authorize('Pathologist'), async (req, res) => {
     try {
-        const orders = await LabTestOrder.find({ labTesterId: req.user._id }).sort({ createdAt: -1 });
+        const orders = await LabTestOrder.find({ pathologistId: req.user._id }).sort({ createdAt: -1 });
         res.json(orders);
     } catch (error) {
         console.error(error);
@@ -130,19 +130,24 @@ router.get('/orders', protect, authorize('Lab_Tester'), async (req, res) => {
 });
 
 // Update Lab Test Order Status
-router.put('/orders/:id/status', protect, authorize('Lab_Tester'), async (req, res) => {
+router.put('/orders/:id/status', protect, authorize('Pathologist'), async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, reportPdf } = req.body;
         if (!['Pending', 'In_Progress', 'Completed'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status' });
         }
 
+        const updateData = { status };
+        if (status === 'Completed') {
+            updateData.dateCompleted = Date.now();
+            if (reportPdf) {
+                updateData.reportPdf = reportPdf;
+            }
+        }
+
         const order = await LabTestOrder.findOneAndUpdate(
-            { _id: req.params.id, labTesterId: req.user._id },
-            { 
-                status,
-                ...(status === 'Completed' ? { dateCompleted: Date.now() } : {})
-            },
+            { _id: req.params.id, pathologistId: req.user._id },
+            updateData,
             { new: true }
         );
 

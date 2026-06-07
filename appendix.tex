@@ -1,0 +1,117 @@
+\chapter{Appendix: Technical Details and Implementation}
+\label{app:technical_details}
+
+This appendix provides supplementary technical information, including visual architectures, data layouts, critical API payloads, and raw simulation data, to support the methodology and implementation discussed in the main chapters.
+
+\section{Visual Architecture}
+The system architecture of MedEcos is designed to handle secure, seamless connections between patients, doctors, and pharmacies. 
+
+\subsection{System Architecture Diagram}
+% Placeholder for an actual image inclusion
+\begin{figure}[h!]
+    \centering
+    \rule{0.8\textwidth}{0.4\textwidth} % Placeholder box
+    % \includegraphics[width=0.8\textwidth]{figures/system_architecture.png}
+    \caption{High-Level System Architecture of MedEcos.}
+    \label{fig:app_system_arch}
+\end{figure}
+
+The architecture diagram outlines the interactions between the frontend interfaces (Patient App, Doctor Portal, Pharmacy Dashboard) and the backend microservices, along with the integration of the ABDM Gateway for secure authentication and health record sharing.
+
+\section{Data Layouts and Schema}
+This section details the primary database schemas utilized within MedEcos for managing crucial entities such as Patients and Prescriptions.
+
+\subsection{Patient Schema}
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|l|p{6cm}|}
+        \hline
+        \textbf{Field Name} & \textbf{Data Type} & \textbf{Description} \\
+        \hline
+        \texttt{patient\_id} & UUID & Primary Key. Unique identifier for the patient. \\
+        \texttt{abha\_id} & String & ABDM Health Account ID. \\
+        \texttt{name} & String & Full name of the patient. \\
+        \texttt{dob} & Date & Date of birth. \\
+        \texttt{gender} & Enum & Patient's gender. \\
+        \texttt{contact\_number} & String & Primary contact number. \\
+        \texttt{medical\_history} & JSONB & Array of chronic conditions and past illnesses. \\
+        \hline
+    \end{tabular}
+    \caption{Patient Database Schema}
+    \label{tab:app_patient_schema}
+\end{table}
+
+\subsection{Prescription Schema}
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|l|p{6cm}|}
+        \hline
+        \textbf{Field Name} & \textbf{Data Type} & \textbf{Description} \\
+        \hline
+        \texttt{prescription\_id} & UUID & Primary Key. \\
+        \texttt{patient\_id} & UUID & Foreign Key to Patient Schema. \\
+        \texttt{doctor\_id} & UUID & Foreign Key referencing the prescribing doctor. \\
+        \texttt{medications} & JSONB & Array of prescribed drugs, dosages, and durations. \\
+        \texttt{issued\_date} & Timestamp & Date and time the prescription was issued. \\
+        \texttt{status} & Enum & E.g., 'Active', 'Fulfilled', 'Expired'. \\
+        \hline
+    \end{tabular}
+    \caption{Prescription Database Schema}
+    \label{tab:app_prescription_schema}
+\end{table}
+
+\section{API Payloads and Code Snippets}
+Instead of exhaustive source code listings, this section highlights critical API interactions, particularly the payload structures for our AI-driven features.
+
+\subsection{Drug Interaction Check via Gemini AI API}
+When a doctor prescribes a new medication, the backend triggers an API call to the Gemini AI service to cross-reference the new drug against the patient's existing active medications for adverse interactions.
+
+\textbf{Sample Request Payload (JSON):}
+\begin{verbatim}
+{
+  "model": "gemini-3.1-pro",
+  "prompt": "Check for severe drug interactions between the 
+             following existing medications: ['Metformin', 'Lisinopril'] 
+             and the new prescription: ['Ibuprofen'].",
+  "patient_context": {
+    "age": 58,
+    "conditions": ["Type 2 Diabetes", "Hypertension"]
+  }
+}
+\end{verbatim}
+
+\textbf{Sample Response Payload (JSON):}
+\begin{verbatim}
+{
+  "interaction_found": true,
+  "severity_level": "Moderate",
+  "details": "Ibuprofen may reduce the antihypertensive effect of Lisinopril. 
+              Monitor blood pressure closely if concurrent use is necessary.",
+  "recommendation": "Consider an alternative analgesic such as Acetaminophen 
+                     if appropriate for the patient's condition."
+}
+\end{verbatim}
+
+\section{Raw Simulation Data and Test Cases}
+To validate system reliability, extensive boundary testing was conducted. Below is a subset of test scenarios related to the ABDM authentication module.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|p{0.5cm}|p{3.5cm}|p{3cm}|p{3cm}|p{2cm}|}
+        \hline
+        \textbf{TC} & \textbf{Test Scenario} & \textbf{Input Data} & \textbf{Expected Output} & \textbf{Status} \\
+        \hline
+        1 & Valid ABHA ID format & \texttt{karan@abdm} & \texttt{200 OK}, OTP sent & Pass \\
+        \hline
+        2 & Invalid ABHA ID format & \texttt{karan\_abdm} & \texttt{400 Bad Request} & Pass \\
+        \hline
+        3 & Valid OTP Submission & \texttt{OTP: 123456} & \texttt{200 OK}, Auth Token & Pass \\
+        \hline
+        4 & Expired OTP Submission & \texttt{OTP: 654321} & \texttt{401 Unauthorized} & Pass \\
+        \hline
+        5 & SQL Injection attempt on ABHA field & \texttt{' OR '1'='1} & \texttt{400 Bad Request} & Pass \\
+        \hline
+    \end{tabular}
+    \caption{ABDM Authentication Test Cases}
+    \label{tab:app_test_cases}
+\end{table}

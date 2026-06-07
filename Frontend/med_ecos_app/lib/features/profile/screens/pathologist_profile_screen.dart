@@ -37,7 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final res = await http.get(
-        Uri.parse('https://medecos.onrender.com/api/auth/me'),
+        Uri.parse('http://localhost:5000/api/auth/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (res.statusCode == 200) {
@@ -78,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final res = await http.put(
-        Uri.parse('https://medecos.onrender.com/api/auth/profile'),
+        Uri.parse('http://localhost:5000/api/auth/profile'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
@@ -127,10 +127,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     
     final p = _profile ?? {};
-    final name = p['username'] ?? 'Lab Tester User';
+    final name = p['username'] ?? 'Pathologist User';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lab Tester Profile'), automaticallyImplyLeading: false),
+      appBar: AppBar(title: const Text('Pathologist Profile'), automaticallyImplyLeading: false),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(

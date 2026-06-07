@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/api_service.dart';
+import 'dart:convert';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
 import 'package:intl/intl.dart';
 
 class PatientLabOrdersScreen extends StatefulWidget {
@@ -38,6 +41,15 @@ class _PatientLabOrdersScreenState extends State<PatientLabOrdersScreen> {
           _loading = false;
         });
       }
+    }
+  }
+
+  void _viewReport(String base64Pdf) async {
+    try {
+      final bytes = base64Decode(base64Pdf);
+      await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => bytes);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to open PDF: $e')));
     }
   }
 
@@ -123,8 +135,8 @@ class _PatientLabOrdersScreenState extends State<PatientLabOrdersScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (order['labTesterId'] != null && order['labTesterId']['username'] != null)
-                            Text("Lab: ${order['labTesterId']['username']}"),
+                          if (order['pathologistId'] != null && order['pathologistId']['username'] != null)
+                            Text("Lab: ${order['pathologistId']['username']}"),
                           Text("Date: $dateStr"),
                         ],
                       ),
@@ -135,9 +147,35 @@ class _PatientLabOrdersScreenState extends State<PatientLabOrdersScreen> {
                         color: statusColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        status.replaceAll('_', ' '),
-                        style: TextStyle(color: statusColor.withOpacity(0.8), fontWeight: FontWeight.bold),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              status.replaceAll('_', ' '),
+                              style: TextStyle(color: statusColor.withOpacity(0.8), fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (status == 'Completed' && order['reportPdf'] != null) ...[
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: () => _viewReport(order['reportPdf']),
+                              icon: const Icon(Icons.picture_as_pdf, size: 16),
+                              label: const Text("View Report"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                textStyle: const TextStyle(fontSize: 12)
+                              ),
+                            )
+                          ]
+                        ],
                       ),
                     ),
                   ),

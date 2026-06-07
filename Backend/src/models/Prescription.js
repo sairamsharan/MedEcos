@@ -48,6 +48,9 @@ const prescriptionSchema = new mongoose.Schema({
     }],
     digitalSignature: {
         type: String,
+    },
+    signaturePayload: {
+        type: String,
     }
 }, { timestamps: true });
 
