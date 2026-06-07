@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
-import '../../../core/utils/constants.dart';
-import '../services/billing_pdf_service.dart';
+import '../../../core/constants/app_constants.dart';
+import 'services/billing_pdf_service.dart';
 
 class PharmacistBillingScreen extends StatefulWidget {
   const PharmacistBillingScreen({super.key});
@@ -15,8 +15,13 @@ class PharmacistBillingScreen extends StatefulWidget {
 }
 
 class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
+
   final TextEditingController _abhaController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _medNameController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
+
   
   bool _loading = false;
   String? _patientName;
@@ -30,6 +35,18 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
   // Cart item format: { 'medicineName': '...', 'pricePerUnit': 0.0, 'quantity': 1, 'maxQuantity': 100 }
   final List<Map<String, dynamic>> _cart = [];
   
+  @override
+  
+  @override
+  void dispose() {
+    _abhaController.dispose();
+    _searchController.dispose();
+    _medNameController.dispose();
+    _priceController.dispose();
+    _quantityController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,20 +96,37 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
         Uri.parse('${AppConstants.apiBaseUrl}/api/v1/pharmacist/prescriptions'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      
+      debugPrint("Prescriptions API returned: ${response.statusCode} - ${response.body}");
 
       if (response.statusCode == 200) {
         final List<dynamic> allPrescriptions = jsonDecode(response.body);
-        final patientPrescriptions = allPrescriptions.where((p) => p['patientId']?['abhaId'] == _abhaId).toList();
+        final patientPrescriptions = allPrescriptions.where((p) => p['abhaId'] == _abhaId).toList();
+        
+        // Fetch patient details to get the name
+        final patientResponse = await http.get(
+          Uri.parse('${AppConstants.apiBaseUrl}/api/v1/pharmacist/patients'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        String? foundName;
+        if (patientResponse.statusCode == 200) {
+          final List<dynamic> patients = jsonDecode(patientResponse.body);
+          try {
+            final patient = patients.firstWhere((p) => p['abhaId'] == _abhaId);
+            foundName = patient['username'];
+          } catch (e) {}
+        }
         
         if (mounted) {
           setState(() {
             _prescriptions = patientPrescriptions;
-            if (_prescriptions.isNotEmpty) {
-              _patientName = _prescriptions.first['patientId']['username'];
-            } else {
-              _patientName = "Unknown (No Prescriptions)";
-            }
+            _patientName = foundName ?? "Unknown Patient";
           });
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error searching prescriptions: ${response.statusCode}')));
         }
       }
     } catch (e) {
@@ -134,6 +168,92 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
         ).toList();
       }
     });
+  }
+
+  
+  void _addManualToCart() {
+    final medName = _medNameController.text.trim();
+    final priceStr = _priceController.text.trim();
+    final qtyStr = _quantityController.text.trim();
+
+    if (medName.isEmpty || priceStr.isEmpty || qtyStr.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
+    final price = double.tryParse(priceStr) ?? 0.0;
+    final qty = int.tryParse(qtyStr) ?? 1;
+
+    if (price <= 0 || qty <= 0) return;
+
+    final existingIndex = _cart.indexWhere((c) => c['medicineName'].toString().toLowerCase() == medName.toLowerCase());
+    if (existingIndex >= 0) {
+      setState(() {
+        _cart[existingIndex]['quantity'] += qty;
+      });
+    } else {
+      setState(() {
+        _cart.add({
+          'medicineName': medName,
+          'pricePerUnit': price,
+          'quantity': qty,
+          'maxQuantity': 1000,
+        });
+      });
+    }
+    _medNameController.clear();
+    _priceController.clear();
+    _quantityController.clear();
+  }
+
+  void _showEditDialog(int index) {
+    final item = _cart[index];
+    final priceCtrl = TextEditingController(text: item['pricePerUnit'].toString());
+    final qtyCtrl = TextEditingController(text: item['quantity'].toString());
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Edit ${item['medicineName']}"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: priceCtrl,
+                decoration: const InputDecoration(labelText: "Price"),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: qtyCtrl,
+                decoration: const InputDecoration(labelText: "Quantity"),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            ElevatedButton(
+              onPressed: () {
+                final newPrice = double.tryParse(priceCtrl.text) ?? item['pricePerUnit'];
+                final newQty = int.tryParse(qtyCtrl.text) ?? item['quantity'];
+                setState(() {
+                  if (newQty <= 0) {
+                    _cart.removeAt(index);
+                  } else {
+                    _cart[index]['pricePerUnit'] = newPrice;
+                    _cart[index]['quantity'] = newQty;
+                  }
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Save"),
+            )
+          ],
+        );
+      }
+    );
   }
 
   void _addToCart(dynamic item, {int defaultQuantity = 1}) {
@@ -186,9 +306,9 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final billData = {
-        'abhaId': _abhaId,
+        if (_abhaId != null && _abhaId!.isNotEmpty) 'abhaId': _abhaId,
         'patientName': _patientName ?? 'Guest Patient',
-        'prescriptionId': _prescriptionId,
+        if (_prescriptionId != null && _prescriptionId!.isNotEmpty) 'prescriptionId': _prescriptionId,
         'medicines': _cart.map((c) => {
           'medicineName': c['medicineName'],
           'quantity': c['quantity'],
@@ -261,10 +381,11 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
                 // Left Column: Patient & Inventory Search
                 Expanded(
                   flex: 3,
-                  child: Column(
-                    children: [
-                      // Patient Search Card
-                      Card(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Patient Search Card
+                        Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -277,6 +398,8 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
                                   Expanded(
                                     child: TextField(
                                       controller: _abhaController,
+                                      inputFormatters: [_AbhaInputFormatter()],
+                                      keyboardType: TextInputType.number,
                                       decoration: const InputDecoration(labelText: 'Enter ABHA ID', border: OutlineInputBorder()),
                                     ),
                                   ),
@@ -295,22 +418,24 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
                                 const SizedBox(height: 16),
                                 const Text("Unfulfilled Prescriptions:"),
                                 const SizedBox(height: 8),
-                                ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _prescriptions.length,
-                                  itemBuilder: (context, index) {
-                                    final p = _prescriptions[index];
-                                    final date = DateFormat.yMMMd().format(DateTime.parse(p['date']));
-                                    return ListTile(
-                                      title: Text("Rx from $date"),
-                                      subtitle: Text("Doctor: ${p['doctorId']?['username'] ?? 'Unknown'}"),
-                                      trailing: ElevatedButton(
-                                        onPressed: () => _importPrescription(p),
-                                        child: const Text('Import'),
-                                      ),
-                                    );
-                                  },
+                                Container(
+                                  constraints: const BoxConstraints(maxHeight: 150),
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: _prescriptions.length,
+                                    itemBuilder: (context, index) {
+                                      final p = _prescriptions[index];
+                                      final date = DateFormat.yMMMd().format(DateTime.parse(p['date']));
+                                      return ListTile(
+                                        title: Text("Rx from $date"),
+                                        subtitle: Text("Doctor: ${p['doctorName'] ?? 'Unknown'}"),
+                                        trailing: ElevatedButton(
+                                          onPressed: () => _importPrescription(p),
+                                          child: const Text('Import'),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 )
                               ]
                             ],
@@ -319,8 +444,7 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
                       ),
                       const SizedBox(height: 16),
                       // Inventory Search
-                      Expanded(
-                        child: Card(
+                      Card(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -328,38 +452,56 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
                               children: [
                                 const Text("Add Medicines", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                 const SizedBox(height: 8),
-                                TextField(
-                                  controller: _searchController,
-                                  onChanged: _filterInventory,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Search Inventory...',
-                                    prefixIcon: Icon(Icons.search),
-                                    border: OutlineInputBorder()
-                                  ),
+                                Autocomplete<Map<String, dynamic>>(
+                                  optionsBuilder: (TextEditingValue textEditingValue) {
+                                    if (textEditingValue.text.isEmpty) {
+                                      return const Iterable<Map<String, dynamic>>.empty();
+                                    }
+                                    return _inventory.where((dynamic item) {
+                                      return item['medicineName']
+                                          .toString()
+                                          .toLowerCase()
+                                          .contains(textEditingValue.text.toLowerCase());
+                                    }).map((e) => Map<String, dynamic>.from(e as Map));
+                                  },
+                                  displayStringForOption: (Map<String, dynamic> option) => option['medicineName'],
+                                  onSelected: (Map<String, dynamic> selection) {
+                                    _medNameController.text = selection['medicineName'];
+                                    _priceController.text = selection['price'].toString();
+                                    _quantityController.text = '1';
+                                  },
+                                  fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                                    controller.addListener(() {
+                                      if (controller.text != _medNameController.text) {
+                                        _medNameController.text = controller.text;
+                                      }
+                                    });
+                                    return TextField(
+                                      controller: controller,
+                                      focusNode: focusNode,
+                                      decoration: const InputDecoration(labelText: 'Medicine Name', border: OutlineInputBorder()),
+                                    );
+                                  },
                                 ),
-                                const SizedBox(height: 8),
-                                Expanded(
-                                  child: ListView.builder(
-                                    itemCount: _filteredInventory.length,
-                                    itemBuilder: (context, index) {
-                                      final item = _filteredInventory[index];
-                                      return ListTile(
-                                        title: Text(item['medicineName']),
-                                        subtitle: Text("Stock: ${item['quantity']} | ₹${item['price'].toStringAsFixed(2)}"),
-                                        trailing: IconButton(
-                                          icon: const Icon(Icons.add_shopping_cart),
-                                          onPressed: () => _addToCart(item),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                )
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(child: TextField(controller: _priceController, decoration: const InputDecoration(labelText: 'Price', border: OutlineInputBorder()), keyboardType: const TextInputType.numberWithOptions(decimal: true))),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: TextField(controller: _quantityController, decoration: const InputDecoration(labelText: 'Quantity', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                                  ]
+                                ),
+                                const SizedBox(height: 16),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: ElevatedButton.icon(onPressed: _addManualToCart, icon: const Icon(Icons.add_shopping_cart), label: const Text("Add to Bill"))
+                                ),
                               ],
                             ),
                           ),
                         ),
-                      )
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -389,6 +531,10 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
                                         trailing: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.edit, size: 16, color: Colors.blue),
+                                              onPressed: () => _showEditDialog(index),
+                                            ),
                                             IconButton(
                                               icon: const Icon(Icons.remove, size: 16),
                                               onPressed: () => _updateQuantity(index, item['quantity'] - 1),
@@ -435,6 +581,27 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+
+class _AbhaInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var text = newValue.text.replaceAll('-', '');
+    if (text.length > 16) text = text.substring(0, 16);
+    var buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      if ((i + 1) % 4 == 0 && i != text.length - 1) {
+        buffer.write('-');
+      }
+    }
+    final newText = buffer.toString();
+    return newValue.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
     );
   }
 }
