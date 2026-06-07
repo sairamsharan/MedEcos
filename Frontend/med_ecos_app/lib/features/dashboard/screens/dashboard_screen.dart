@@ -112,7 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final med = Medicine(
                 id: m['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
                 name: m['name']?.toString() ?? 'Unknown',
-                dosage: m['dosage']?.toString() ?? m['timing']?.toString() ?? '',
+                dosage: m['frequency']?.toString() ?? m['timing']?.toString() ?? m['dosage']?.toString() ?? '',
                 frequency: 1,
                 timings: [],
                 startDate: prescribeDate,
@@ -280,8 +280,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Wrap(
                             spacing: 24, runSpacing: 24,
                             children: [
-                              StatCard(title: "Medicines", value: _medicines.length.toString(), icon: Icons.medical_services, color: Colors.blue, onTap: () => _onItemSelected(3)),
-                              StatCard(title: "Active Meds", value: _activeMedicines.toString(), icon: Icons.healing, color: Colors.teal, onTap: () => _onItemSelected(3)),
+                              StatCard(title: "Medicines", value: _medicines.length.toString(), icon: Icons.medical_services, color: Colors.blue, onTap: () => _onItemSelected(1)),
+                              StatCard(title: "Active Meds", value: _activeMedicines.toString(), icon: Icons.healing, color: Colors.teal, onTap: () => _onItemSelected(1)),
                               StatCard(title: "Prescriptions", value: _totalPrescriptions.toString(), icon: Icons.receipt_long, color: Colors.green, onTap: () => _onItemSelected(1)),
                             ],
                           ),
@@ -616,6 +616,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           TextButton(
                             onPressed: () async {
+                              setState(() { dose.status = 'SKIPPED'; });
                               await ReminderService().logDose(dose, 'SKIPPED');
                               _fetchPatientData();
                             },
@@ -623,6 +624,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () async {
+                              setState(() { dose.status = 'TAKEN'; });
                               await ReminderService().logDose(dose, 'TAKEN');
                               _fetchPatientData();
                             },
@@ -813,9 +815,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           SizedBox(
             width: 250, 
             child: Sidebar(
-              userRole: _userRole,
-              selectedIndex: _selectedIndex,
               onItemSelected: _onItemSelected,
+              selectedIndex: _selectedIndex,
+              userRole: _userRole,
+              userName: _userName,
             ),
           ),
           Expanded(child: _buildContent()),

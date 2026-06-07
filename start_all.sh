@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 echo "1. Starting Backend & Seeding Database..."
 cd Backend
 npm install
-# node src/seed.js
+node src/seed.js
 npm run dev &
 BACKEND_PID=$!
 cd ..

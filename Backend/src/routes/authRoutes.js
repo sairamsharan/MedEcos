@@ -279,6 +279,7 @@ router.post('/abha/verify-otp', async (req, res) => {
         res.json({
             _id: user.id,
             abhaId: user.abhaId,
+            username: user.username,
             role: user.role,
             token: generateToken(user._id, user.role),
             abdmAccessToken: "mock-local-abdm-access-token" // Optionally return a mock token

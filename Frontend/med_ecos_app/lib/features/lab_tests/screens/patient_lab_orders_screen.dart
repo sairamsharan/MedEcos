@@ -111,7 +111,12 @@ class _PatientLabOrdersScreenState extends State<PatientLabOrdersScreen> {
                     ? DateFormat('MMM dd, yyyy').format(DateTime.parse(order['createdAt']).toLocal())
                     : 'Unknown Date';
                 
-                final status = order['status'] ?? 'Pending';
+                bool hasValidPdf = order['reportPdf'] != null && order['reportPdf'].toString().startsWith('JVBER');
+                String status = order['status'] ?? 'Pending';
+                if (status == 'Completed' && !hasValidPdf) {
+                  status = 'Pending';
+                }
+
                 Color statusColor = Colors.grey;
                 if (status == 'In_Progress') statusColor = Colors.orange;
                 if (status == 'Completed') statusColor = Colors.green;
@@ -120,63 +125,64 @@ class _PatientLabOrdersScreenState extends State<PatientLabOrdersScreen> {
                   margin: const EdgeInsets.only(bottom: 16),
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      backgroundColor: statusColor.withOpacity(0.1),
-                      child: Icon(Icons.science, color: statusColor),
-                    ),
-                    title: Text(
-                      order['testName'] ?? 'Unknown Test',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (order['pathologistId'] != null && order['pathologistId']['username'] != null)
-                            Text("Lab: ${order['pathologistId']['username']}"),
-                          Text("Date: $dateStr"),
-                        ],
-                      ),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: statusColor.withOpacity(0.1),
+                              child: Icon(Icons.science, color: statusColor),
                             ),
-                            child: Text(
-                              status.replaceAll('_', ' '),
-                              style: TextStyle(color: statusColor.withOpacity(0.8), fontWeight: FontWeight.bold),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    order['testName'] ?? 'Unknown Test',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  if (order['pathologistId'] != null && order['pathologistId']['username'] != null)
+                                    Text("Lab: ${order['pathologistId']['username']}", style: TextStyle(color: Colors.grey[700])),
+                                  const SizedBox(height: 2),
+                                  Text("Date: $dateStr", style: const TextStyle(color: Colors.grey)),
+                                ],
+                              ),
                             ),
-                          ),
-                          if (status == 'Completed' && order['reportPdf'] != null) ...[
-                            const SizedBox(height: 8),
-                            ElevatedButton.icon(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                status.replaceAll('_', ' '),
+                                style: TextStyle(color: statusColor.withOpacity(0.8), fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (status == 'Completed' && hasValidPdf) ...[
+                          const SizedBox(height: 16),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton.icon(
                               onPressed: () => _viewReport(order['reportPdf']),
                               icon: const Icon(Icons.picture_as_pdf, size: 16),
                               label: const Text("View Report"),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                textStyle: const TextStyle(fontSize: 12)
                               ),
-                            )
-                          ]
-                        ],
-                      ),
+                            ),
+                          )
+                        ]
+                      ],
                     ),
                   ),
                 );

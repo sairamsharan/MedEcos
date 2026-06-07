@@ -88,15 +88,38 @@ class _PrescriptionsScreenState extends State<PrescriptionsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Dr. ${p['doctorName'] ?? 'Unknown'}",
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Dr. ${p['doctorName'] ?? 'Unknown'}",
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  DateFormat('MMM dd, yyyy').format(date),
+                                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                ),
+                              ],
+                            ),
                           ),
-                          Text(
-                            DateFormat('MMM dd, yyyy').format(date),
-                            style: const TextStyle(color: Colors.grey),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: (p['status'] == 'Active') ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              (p['status']?.toString().toUpperCase() ?? 'ACTIVE'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: (p['status'] == 'Active') ? Colors.green : Colors.grey[700],
+                              ),
+                            ),
                           ),
                         ],
                       ),

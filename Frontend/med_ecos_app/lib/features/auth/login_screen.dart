@@ -81,6 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('jwt_token', data['token']);
         await prefs.setString('user_id', data['_id']);
         await prefs.setString('user_role', data['role']);
+        await prefs.setString('username', data['username'] ?? 'User');
         
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -103,7 +104,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  bool _isEmailLogin = true; // Default to email login
+  String _selectedRole = 'Patient';
+  bool _isEmailLogin = false; // Default to email login
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -169,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(title: const Text('MedEcos Login')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
+          constraints: const BoxConstraints(maxWidth: 600),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: SingleChildScrollView(
@@ -180,31 +182,49 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Icon(Icons.person, size: 80, color: Colors.blue),
                   const SizedBox(height: 32),
                   
-                  // Toggle Switch
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('ABHA OTP', style: TextStyle(fontWeight: !_isEmailLogin ? FontWeight.bold : FontWeight.normal)),
-                      Switch(
-                        value: _isEmailLogin,
-                        onChanged: (val) {
-                          setState(() {
-                            _isEmailLogin = val;
-                            _errorMessage = null;
-                          });
-                        },
-                      ),
-                      Text('Email', style: TextStyle(fontWeight: _isEmailLogin ? FontWeight.bold : FontWeight.normal)),
-                    ],
+                  // Role Selector
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: ['Patient', 'Doctor', 'Pharmacist', 'Pathologist'].map((role) {
+                        final isSelected = _selectedRole == role;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: ChoiceChip(
+                            label: Text(role),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _selectedRole = role;
+                                  _errorMessage = null;
+                                  if (role != 'Patient') {
+                                    _isEmailLogin = true;
+                                  } else {
+                                    _isEmailLogin = false;
+                                  }
+                                });
+                              }
+                            },
+                            selectedColor: Colors.blue.shade100,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.blue.shade900 : Colors.black87,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        );
+                      }).toList(),
                   ),
                   const SizedBox(height: 24),
   
                   if (_isEmailLogin) ...[
                     TextField(
                       controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: '$_selectedRole Email',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.email),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -214,6 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Password',
                         border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.lock),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -235,6 +256,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? const CircularProgressIndicator() 
                           : const Text('Login'),
                     ),
+                    if (_selectedRole == 'Patient') ...[
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isEmailLogin = false;
+                            _errorMessage = null;
+                          });
+                        },
+                        child: const Text("Use ABHA ID instead"),
+                      ),
+                    ],
                   ] else ...[
                     if (_transactionId == null) ...[
                       TextField(
@@ -296,6 +329,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: _isLoading 
                             ? const CircularProgressIndicator() 
                             : const Text('Verify & Login'),
+                      ),
+                    ],
+                    if (_selectedRole == 'Patient') ...[
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isEmailLogin = true;
+                            _errorMessage = null;
+                          });
+                        },
+                        child: const Text("Use Email instead"),
                       ),
                     ],
                   ],

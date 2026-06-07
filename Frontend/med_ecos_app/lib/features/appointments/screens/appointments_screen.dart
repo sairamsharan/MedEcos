@@ -57,6 +57,16 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }
   }
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Confirmed': return Colors.blue;
+      case 'Completed': return Colors.green;
+      case 'Pending': return Colors.orange;
+      case 'RescheduleRequested': return Colors.red;
+      default: return Colors.grey;
+    }
+  }
+
   Future<void> _acceptReschedule(String id) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -125,7 +135,21 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       children: [
                         Text(docName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
-                        Text('Status: $status', style: TextStyle(color: status == 'Confirmed' ? Colors.green : Colors.orange)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(status).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            status.toUpperCase(),
+                            style: TextStyle(
+                              color: _getStatusColor(status),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Text('Original Date: ${DateFormat.yMMMd().add_jm().format(date)}'),
                         if (appt['notes'] != null && appt['notes'].toString().isNotEmpty) ...[
