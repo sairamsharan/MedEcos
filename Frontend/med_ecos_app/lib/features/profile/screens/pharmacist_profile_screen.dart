@@ -29,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final res = await http.get(
-        Uri.parse('http://localhost:5000/api/auth/me'),
+        Uri.parse('https://medecos.onrender.com/api/auth/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (res.statusCode == 200) {
@@ -54,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final res = await http.put(
-        Uri.parse('http://localhost:5000/api/auth/profile'),
+        Uri.parse('https://medecos.onrender.com/api/auth/profile'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
         body: jsonEncode({
           'address': _addressController.text,

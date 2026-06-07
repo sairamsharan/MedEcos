@@ -92,12 +92,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         const SizedBox(height: 8),
                         Text(
                           "ID: ${widget.patientId}",
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+                          style: TextStyle(color: Colors.white.withOpacity(0.9)),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           "${_patient!.gender} • ${_patient!.age} Years",
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+                          style: TextStyle(color: Colors.white.withOpacity(0.9)),
                         ),
                       ],
                     ),

@@ -53,7 +53,7 @@ class _PrescriptionFormScreenState extends State<PrescriptionFormScreen> {
 
   Future<void> _fetchMedicines() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5000/api/v1/public/medicines'));
+      final response = await http.get(Uri.parse('https://medecos.onrender.com/api/v1/public/medicines'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         if (mounted) {

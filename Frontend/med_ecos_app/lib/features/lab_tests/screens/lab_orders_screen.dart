@@ -27,7 +27,7 @@ class _LabOrdersScreenState extends State<LabOrdersScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final res = await http.get(
-        Uri.parse('http://localhost:5000/api/v1/lab_tester/orders'),
+        Uri.parse('https://medecos.onrender.com/api/v1/lab_tester/orders'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -52,7 +52,7 @@ class _LabOrdersScreenState extends State<LabOrdersScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final res = await http.put(
-        Uri.parse('http://localhost:5000/api/v1/lab_tester/orders/$orderId/status'),
+        Uri.parse('https://medecos.onrender.com/api/v1/lab_tester/orders/$orderId/status'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'

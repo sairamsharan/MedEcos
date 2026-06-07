@@ -46,7 +46,7 @@ class _LabLocationsMapScreenState extends State<LabLocationsMapScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final res = await http.get(
-        Uri.parse('http://localhost:5000/api/v1/patient/labs'),
+        Uri.parse('https://medecos.onrender.com/api/v1/patient/labs'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -77,7 +77,7 @@ class _LabLocationsMapScreenState extends State<LabLocationsMapScreen> {
       final token = prefs.getString('jwt_token') ?? '';
       
       final res = await http.post(
-        Uri.parse('http://localhost:5000/api/v1/patient/lab-test-orders'),
+        Uri.parse('https://medecos.onrender.com/api/v1/patient/lab-test-orders'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'

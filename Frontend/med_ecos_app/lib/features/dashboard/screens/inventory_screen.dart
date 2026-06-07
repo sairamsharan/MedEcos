@@ -194,7 +194,7 @@ class _AddInventorySheetState extends State<AddInventorySheet> {
 
   Future<void> _fetchMedicines() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5000/api/public/medicines'));
+      final response = await http.get(Uri.parse('https://medecos.onrender.com/api/public/medicines'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         if (mounted) {
