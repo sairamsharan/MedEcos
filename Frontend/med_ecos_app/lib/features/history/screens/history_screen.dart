@@ -48,14 +48,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
               itemBuilder: (context, index) {
                 final log = _history[index];
                 final date = DateTime.parse(log['takenTime']);
-                return ListTile(
-                  title: Text(log['medicineName']),
-                  subtitle: Text(DateFormat('yyyy-MM-dd HH:mm').format(date)),
-                  trailing: Text(
-                    log['status'],
-                    style: TextStyle(
-                      color: log['status'] == 'TAKEN' ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
+                final status = log['status'];
+                final isTaken = status == 'TAKEN';
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: CircleAvatar(
+                      backgroundColor: isTaken ? Colors.green.withOpacity(0.1) : (status == 'SKIPPED' ? Colors.orange.withOpacity(0.1) : Colors.red.withOpacity(0.1)),
+                      child: Icon(
+                        isTaken ? Icons.check_circle : (status == 'SKIPPED' ? Icons.skip_next : Icons.cancel),
+                        color: isTaken ? Colors.green : (status == 'SKIPPED' ? Colors.orange : Colors.red),
+                      ),
+                    ),
+                    title: Text(log['medicineName'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    subtitle: Text(DateFormat('MMM dd, yyyy • hh:mm a').format(date)),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isTaken ? Colors.green.withOpacity(0.1) : (status == 'SKIPPED' ? Colors.orange.withOpacity(0.1) : Colors.red.withOpacity(0.1)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: isTaken ? Colors.green : (status == 'SKIPPED' ? Colors.orange : Colors.red),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ),
                 );

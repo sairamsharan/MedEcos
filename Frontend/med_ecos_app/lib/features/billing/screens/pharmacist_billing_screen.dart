@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
-import '../../../core/constants/app_constants.dart';
-import 'services/billing_pdf_service.dart';
+import '../../../core/utils/constants.dart';
+import '../services/billing_pdf_service.dart';
 
 class PharmacistBillingScreen extends StatefulWidget {
   const PharmacistBillingScreen({super.key});
@@ -41,7 +41,7 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token') ?? '';
       final response = await http.get(
-        Uri.parse('${AppConstants.apiBaseUrl}/pharmacist/inventory'),
+        Uri.parse('${AppConstants.apiBaseUrl}/api/v1/pharmacist/inventory'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -76,7 +76,7 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
       // For now, let's just fetch prescriptions for this abhaId. The Pharmacist doesn't have a direct patient lookup by ABHA
       // Wait, we can fetch prescriptions and derive the name from them, or use a guest.
       final response = await http.get(
-        Uri.parse('${AppConstants.apiBaseUrl}/pharmacist/prescriptions'),
+        Uri.parse('${AppConstants.apiBaseUrl}/api/v1/pharmacist/prescriptions'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -199,7 +199,7 @@ class _PharmacistBillingScreenState extends State<PharmacistBillingScreen> {
       };
 
       final response = await http.post(
-        Uri.parse('${AppConstants.apiBaseUrl}/pharmacist/bills'),
+        Uri.parse('${AppConstants.apiBaseUrl}/api/v1/pharmacist/bills'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'

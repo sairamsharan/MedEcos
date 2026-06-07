@@ -7,12 +7,14 @@ class Sidebar extends StatelessWidget {
   final Function(int) onItemSelected;
   final int selectedIndex;
   final String userRole;
+  final String userName;
 
   const Sidebar({
     super.key, 
     required this.onItemSelected, 
     required this.selectedIndex,
     required this.userRole,
+    required this.userName,
   });
 
   @override
@@ -27,7 +29,6 @@ class Sidebar extends StatelessWidget {
         _NavItem(icon: Icons.history, label: "History", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
         _NavItem(icon: Icons.science, label: "Lab Orders", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
         const Spacer(),
-        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 5, onTap: () => onItemSelected(5)),
       ];
     } else if (userRole == 'Doctor') {
       items = [
@@ -36,7 +37,6 @@ class Sidebar extends StatelessWidget {
         _NavItem(icon: Icons.people, label: "Patients", isSelected: selectedIndex == 2, onTap: () => onItemSelected(2)),
         _NavItem(icon: Icons.calendar_month, label: "Appointments", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
         const Spacer(),
-        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
       ];
     } else if (userRole == 'Pharmacist') {
       items = [
@@ -46,7 +46,6 @@ class Sidebar extends StatelessWidget {
         _NavItem(icon: Icons.inventory, label: "Inventory", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
         _NavItem(icon: Icons.point_of_sale, label: "Billing", isSelected: selectedIndex == 4, onTap: () => onItemSelected(4)),
         const Spacer(),
-        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 5, onTap: () => onItemSelected(5)),
       ];
     } else if (userRole == 'Pathologist') {
       items = [
@@ -54,7 +53,6 @@ class Sidebar extends StatelessWidget {
         _NavItem(icon: Icons.search, label: "Lookup", isSelected: selectedIndex == 1, onTap: () => onItemSelected(1)),
         _NavItem(icon: Icons.science, label: "Lab Tests", isSelected: selectedIndex == 2, onTap: () => onItemSelected(2)),
         const Spacer(),
-        _NavItem(icon: Icons.person, label: "Profile", isSelected: selectedIndex == 3, onTap: () => onItemSelected(3)),
       ];
     }
 
@@ -77,6 +75,67 @@ class Sidebar extends StatelessWidget {
           
           ...items,
           
+          Builder(
+            builder: (context) {
+              int profileIndex = 0;
+              if (userRole == 'Patient') profileIndex = 5;
+              else if (userRole == 'Doctor') profileIndex = 4;
+              else if (userRole == 'Pharmacist') profileIndex = 5;
+              else if (userRole == 'Pathologist') profileIndex = 3;
+              
+              final isProfileSelected = selectedIndex == profileIndex;
+
+              return InkWell(
+                onTap: () => onItemSelected(profileIndex),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isProfileSelected ? AppColors.surfaceVariant : AppColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isProfileSelected ? AppColors.primary.withOpacity(0.5) : Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.primaryLight,
+                        child: Icon(Icons.person, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold, 
+                                fontSize: 14,
+                                color: isProfileSelected ? AppColors.primary : Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              userRole,
+                              style: TextStyle(
+                                color: isProfileSelected ? AppColors.primary.withOpacity(0.7) : AppColors.textSecondary, 
+                                fontSize: 12
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          ),
           const SizedBox(height: 10),
           _NavItem(
             icon: Icons.logout, 

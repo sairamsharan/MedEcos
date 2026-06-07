@@ -94,14 +94,13 @@ class ReminderService {
           
           if (timingsList.isEmpty) {
             // Fallback for older prescriptions lacking explicit 'timing' fields
-            final dosage = med['dosage'] ?? '';
-            final parts = dosage.split('-');
-            if (parts.length >= 3) {
-              // Map '1-0-1' to Morning and Night
+            final dosageStr = (med['frequency']?.isNotEmpty == true) ? med['frequency']! : (med['dosage'] ?? '');
+            final parts = dosageStr.split('-');
+            if (parts.isNotEmpty) {
               if (parts[0].trim() != '0' && parts[0].trim().isNotEmpty) timingsList.add('Morning');
-              if (parts[1].trim() != '0' && parts[1].trim().isNotEmpty) timingsList.add('Afternoon');
-              if (parts[2].trim() != '0' && parts[2].trim().isNotEmpty) timingsList.add('Night');
-              if (parts.length >= 4 && parts[3].trim() != '0' && parts[3].trim().isNotEmpty) timingsList.add('Evening');
+              if (parts.length >= 2 && parts[1].trim() != '0' && parts[1].trim().isNotEmpty) timingsList.add('Afternoon');
+              if (parts.length >= 3 && parts[2].trim() != '0' && parts[2].trim().isNotEmpty) timingsList.add('Evening');
+              if (parts.length >= 4 && parts[3].trim() != '0' && parts[3].trim().isNotEmpty) timingsList.add('Night');
             } else {
               // Default to Morning if unparseable
               timingsList.add('Morning');
@@ -185,6 +184,6 @@ class ReminderService {
   }
 
   Future<void> logDose(MedicineDose dose, String status) async {
-    await ApiService().logMedicineHistory(dose.medicineId, dose.medicineName, DateTime.now(), status);
+    await ApiService().logMedicineHistory(dose.medicineId, dose.medicineName, dose.expectedTime, status);
   }
 }

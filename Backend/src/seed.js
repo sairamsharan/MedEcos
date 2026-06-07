@@ -70,7 +70,7 @@ const seedDatabase = async () => {
         const doc1Keys = generateKeys();
         const doctor1 = await User.create({
             username: 'Dr. K. Rao',
-            email: 'dr.rao@medecos.com',
+            email: 'dr.rao@gmail.com',
             password: defaultPassword,
             role: 'Doctor',
             publicKey: doc1Keys.publicKey,
@@ -90,7 +90,7 @@ const seedDatabase = async () => {
         const doc2Keys = generateKeys();
         const doctor2 = await User.create({
             username: 'Dr. Ananya Reddy',
-            email: 'dr.ananya@medecos.com',
+            email: 'dr.ananya@gmail.com',
             password: defaultPassword,
             role: 'Doctor',
             publicKey: doc2Keys.publicKey,
@@ -109,7 +109,7 @@ const seedDatabase = async () => {
         // Pathologist (Lab)
         const pathologist = await User.create({
             username: 'Apollo Diagnostics - Madhapur',
-            email: 'apollo.lab@medecos.com',
+            email: 'apollo.lab@gmail.com',
             password: defaultPassword,
             role: 'Pathologist',
             address: 'Madhapur Main Road, Hyderabad',
@@ -120,7 +120,7 @@ const seedDatabase = async () => {
         // Pharmacist
         const pharmacist = await User.create({
             username: 'MedPlus Pharmacy Madhapur',
-            email: 'medplus.madhapur@medecos.com',
+            email: 'medplus.madhapur@gmail.com',
             password: defaultPassword,
             role: 'Pharmacist',
             address: 'Ayyappa Society, Madhapur, Hyderabad',
@@ -130,10 +130,12 @@ const seedDatabase = async () => {
         // Patient 1 (from MockABDM)
         const patient1 = await User.create({
             username: 'Abhinav Sharma',
-            email: 'abhinav@medecos.com',
+            email: 'abhinav@gmail.com',
             password: defaultPassword,
             role: 'Patient',
             abhaId: '9999-8888-7777-6666',
+            age: 34,
+            gender: 'Male',
             address: 'Kavuri Hills, Madhapur, Hyderabad',
             location: { lat: 17.4399, lng: 78.3976 }
         });
@@ -141,10 +143,12 @@ const seedDatabase = async () => {
         // Patient 2 (from MockABDM)
         const patient2 = await User.create({
             username: 'Kavya Reddy',
-            email: 'kavya@medecos.com',
+            email: 'kavya@gmail.com',
             password: defaultPassword,
             role: 'Patient',
             abhaId: '5555-4444-3333-2222',
+            age: 28,
+            gender: 'Female',
             address: 'Jubilee Hills, Hyderabad',
             location: { lat: 17.4325, lng: 78.4070 }
         });
@@ -204,8 +208,8 @@ const seedDatabase = async () => {
             abhaId: patient1.abhaId,
             diagnosis: 'Viral Fever & Body Ache',
             medicines: [
-                { name: 'Paracetamol 500mg', frequency: '1-0-1', duration: '5 days' },
-                { name: 'Vitamin C 1000mg', frequency: '1-0-0', duration: '10 days' }
+                { name: 'Paracetamol 500mg', frequency: '1-0-0-1', duration: '5 days' },
+                { name: 'Vitamin C 1000mg', frequency: '1-0-0-0', duration: '10 days' }
             ],
             labTests: ['Complete Blood Count (CBC)']
         };
@@ -225,8 +229,8 @@ const seedDatabase = async () => {
             abhaId: patient2.abhaId,
             diagnosis: 'Hypertension & Hyperlipidemia',
             medicines: [
-                { name: 'Atorvastatin 20mg', frequency: '0-0-1', duration: '30 days' },
-                { name: 'Amlodipine 5mg', frequency: '1-0-0', duration: '30 days' }
+                { name: 'Atorvastatin 20mg', frequency: '0-0-0-1', duration: '30 days' },
+                { name: 'Amlodipine 5mg', frequency: '1-0-0-0', duration: '30 days' }
             ],
             labTests: ['Lipid Profile']
         };
@@ -246,8 +250,8 @@ const seedDatabase = async () => {
             abhaId: patient1.abhaId,
             diagnosis: 'Respiratory Tract Infection',
             medicines: [
-                { name: 'Amoxicillin 500mg', frequency: '1-1-1', duration: '7 days' },
-                { name: 'Cetirizine 10mg', frequency: '0-0-1', duration: '7 days' }
+                { name: 'Amoxicillin 500mg', frequency: '1-1-0-1', duration: '7 days' },
+                { name: 'Cetirizine 10mg', frequency: '0-0-0-1', duration: '5 days' }
             ],
             labTests: []
         };
@@ -328,12 +332,12 @@ const seedDatabase = async () => {
         console.log('SEEDING COMPLETED SUCCESSFULLY!');
         console.log('-------------------------------------------');
         console.log('Test Accounts (Password: password123)');
-        console.log('- Doctor: dr.rao@medecos.com (AIG Hospitals)');
-        console.log('- Doctor: dr.ananya@medecos.com (Medicover)');
-        console.log('- Pathologist: apollo.lab@medecos.com');
-        console.log('- Pharmacist: medplus.madhapur@medecos.com');
-        console.log('- Patient: abhinav@medecos.com (ABHA: 9999-8888-7777-6666)');
-        console.log('- Patient: kavya@medecos.com (ABHA: 5555-4444-3333-2222)');
+        console.log('- Doctor: dr.rao@gmail.com (AIG Hospitals)');
+        console.log('- Doctor: dr.ananya@gmail.com (Medicover)');
+        console.log('- Pathologist: apollo.lab@gmail.com');
+        console.log('- Pharmacist: medplus.madhapur@gmail.com');
+        console.log('- Patient: abhinav@gmail.com (ABHA: 9999-8888-7777-6666)');
+        console.log('- Patient: kavya@gmail.com (ABHA: 5555-4444-3333-2222)');
         console.log('-------------------------------------------');
 
         process.exit();
