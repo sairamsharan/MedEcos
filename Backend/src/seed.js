@@ -215,6 +215,9 @@ const seedDatabase = async () => {
         };
         const rx1 = await Prescription.create({
             abhaId: patient1.abhaId,
+            patientName: patient1.username,
+            patientAge: patient1.age,
+            patientGender: patient1.gender,
             doctorId: doctor1._id,
             doctorName: doctor1.username,
             diagnosis: p1Payload.diagnosis,
@@ -236,6 +239,9 @@ const seedDatabase = async () => {
         };
         const rx2 = await Prescription.create({
             abhaId: patient2.abhaId,
+            patientName: patient2.username,
+            patientAge: patient2.age,
+            patientGender: patient2.gender,
             doctorId: doctor2._id,
             doctorName: doctor2.username,
             diagnosis: p2Payload.diagnosis,
@@ -257,6 +263,9 @@ const seedDatabase = async () => {
         };
         const rx3 = await Prescription.create({
             abhaId: patient1.abhaId,
+            patientName: patient1.username,
+            patientAge: patient1.age,
+            patientGender: patient1.gender,
             doctorId: doctor1._id,
             doctorName: doctor1.username,
             diagnosis: p3Payload.diagnosis,

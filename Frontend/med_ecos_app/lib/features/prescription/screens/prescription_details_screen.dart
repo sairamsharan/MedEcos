@@ -51,7 +51,9 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
             pw.Text("MedEcos Prescription", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 20),
             pw.Text("Doctor: Dr. ${widget.prescription.doctorName}"),
-            pw.Text("Patient: ${widget.prescription.patientName}"),
+            pw.Text("Patient: ${widget.prescription.patientName} (ABHA: ${widget.prescription.patientId})"),
+            if (widget.prescription.patientAge != null || widget.prescription.patientGender != null)
+              pw.Text("Demographics: ${widget.prescription.patientAge != null ? '${widget.prescription.patientAge} Yrs' : ''} ${widget.prescription.patientGender != null ? '| ${widget.prescription.patientGender}' : ''}"),
             pw.Text("Date: ${DateFormat.yMMMd().format(widget.prescription.date)}"),
             pw.Text("Status: $_status"),
             pw.Divider(),
@@ -177,7 +179,14 @@ class _PrescriptionDetailsScreenState extends State<PrescriptionDetailsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text("Patient: ${widget.prescription.patientName}", style: const TextStyle(fontSize: 18)),
+            Text("Patient: ${widget.prescription.patientName}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("ABHA ID: ${widget.prescription.patientId}", style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            if (widget.prescription.patientAge != null || widget.prescription.patientGender != null)
+              Text(
+                "${widget.prescription.patientAge != null ? '${widget.prescription.patientAge} Years ' : ''}${widget.prescription.patientGender != null ? '• ${widget.prescription.patientGender}' : ''}", 
+                style: const TextStyle(fontSize: 16)
+              ),
+            const SizedBox(height: 8),
             Text("Doctor: Dr. ${widget.prescription.doctorName}", style: const TextStyle(fontSize: 18)),
             Text("Date: ${DateFormat.yMMMd().add_jm().format(widget.prescription.date)}", style: const TextStyle(color: Colors.grey)),
             

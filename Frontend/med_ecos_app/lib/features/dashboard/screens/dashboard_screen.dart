@@ -749,7 +749,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: Icons.list_alt,
                       label: "View Schedule",
                       color: Colors.purpleAccent,
-                      onTap: () => _onItemSelected(1),
+                      onTap: () => _onItemSelected(3),
                     ),
                     const SizedBox(width: 16),
                     if (_userRole == 'Pharmacist')

@@ -2,6 +2,8 @@ class Prescription {
   final String id;
   final String patientId;
   final String patientName;
+  final int? patientAge;
+  final String? patientGender;
   final String doctorName;
   final String? pharmacistName;
   final DateTime date;
@@ -16,6 +18,8 @@ class Prescription {
     required this.id,
     required this.patientId,
     required this.patientName,
+    this.patientAge,
+    this.patientGender,
     required this.doctorName,
     this.pharmacistName,
     required this.date,

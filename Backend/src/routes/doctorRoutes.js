@@ -11,9 +11,9 @@ const crypto = require('crypto');
 // Create Prescription
 router.post('/prescriptions', protect, authorize('Doctor'), async (req, res) => {
     try {
-        const { abhaId, diagnosis, medicines, labTests } = req.body;
+        const { abhaId, patientName, patientAge, patientGender, diagnosis, medicines, labTests } = req.body;
 
-        if (!abhaId || !diagnosis || !medicines) {
+        if (!abhaId || !patientName || !diagnosis || !medicines) {
             return res.status(400).json({ message: 'Please provide all required fields' });
         }
 
@@ -34,6 +34,9 @@ router.post('/prescriptions', protect, authorize('Doctor'), async (req, res) => 
 
         const prescription = await Prescription.create({
             abhaId,
+            patientName,
+            patientAge,
+            patientGender,
             doctorId: req.user.id,
             doctorName: req.user.username || 'Unknown Doctor', // Fallback
             diagnosis,
